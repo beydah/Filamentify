@@ -52,7 +52,7 @@ function Breadcrumbs() {
     orders: "Siparişler",
     customers: "Müşteriler",
     materials: "Malzemeler",
-    members: "Üyeler",
+    members: "Kullanıcılar",
     account: "Hesabım",
     settings: "Ayarlar",
     stats: "İstatistikler",

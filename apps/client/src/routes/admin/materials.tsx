@@ -12,7 +12,11 @@ import {
   ChevronsUpDown,
   ExternalLink,
   MoreVertical,
-  Box
+  Box,
+  Eye,
+  Edit3,
+  AlertCircle,
+  Layers
 } from "lucide-react"
 import { Button } from "@/ui/controls/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/controls/card"
@@ -46,6 +50,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/ui/controls/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/ui/controls/dialog"
 import { toast } from "sonner"
 
 interface MaterialCategory {
@@ -56,11 +68,12 @@ interface MaterialCategory {
 interface Material {
   ID: number
   CategoryID: number
-  CategoryName: string
   Name: string
   Quantity: number
   TotalPrice: number
   Link: string
+  CategoryName: string
+  PurchaseDate: string
 }
 
 const toTitleCase = (str: string) => {
@@ -70,8 +83,8 @@ const toTitleCase = (str: string) => {
 export default function MaterialsPage() {
   const { t } = useTranslation()
   const [isFormOpen, setIsFormOpen] = React.useState(true)
+  const [isCatOpen, setIsCatOpen] = React.useState(true)
   const [openCategory, setOpenCategory] = React.useState(false)
-  
   const [materials, setMaterials] = React.useState<Material[]>([])
   const [categories, setCategories] = React.useState<MaterialCategory[]>([])
   const [loading, setLoading] = React.useState(true)
@@ -83,10 +96,22 @@ export default function MaterialsPage() {
   const [formData, setFormData] = React.useState({
     name: "",
     categoryId: "",
-    quantity: "1",
-    totalPrice: "0",
+    quantity: "100",
+    totalPrice: "100",
     link: ""
   })
+
+  const [isDetailOpen, setIsDetailOpen] = React.useState(false)
+  const [isEditOpen, setIsEditOpen] = React.useState(false)
+  const [selectedMaterial, setSelectedMaterial] = React.useState<Material | null>(null)
+  const [editFormData, setEditFormData] = React.useState({
+    name: "",
+    categoryId: "",
+    quantity: "",
+    totalPrice: "",
+    link: ""
+  })
+  const [updating, setUpdating] = React.useState(false)
 
   const fetchData = React.useCallback(async () => {
     try {
@@ -122,6 +147,7 @@ export default function MaterialsPage() {
       if (response.ok) {
         setNewCategory("")
         fetchData()
+        toast.success(t("common.notifications.added"))
       }
     } catch (error) {
       console.error("Failed to add category:", error)
@@ -159,11 +185,8 @@ export default function MaterialsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: toTitleCase(formData.name),
-          categoryId: parseInt(formData.categoryId),
-          quantity: parseInt(formData.quantity),
-          totalPrice: parseFloat(formData.totalPrice),
-          link: formData.link
+          ...formData,
+          name: toTitleCase(formData.name)
         })
       })
       if (response.ok) {
@@ -171,8 +194,8 @@ export default function MaterialsPage() {
         setFormData({
           name: "",
           categoryId: "",
-          quantity: "1",
-          totalPrice: "0",
+          quantity: "100",
+          totalPrice: "100",
           link: ""
         })
         fetchData()
@@ -195,6 +218,43 @@ export default function MaterialsPage() {
       }
     } catch (error) {
       console.error("Failed to delete material:", error)
+    }
+  }
+
+  const handleEditClick = (m: Material) => {
+    setSelectedMaterial(m)
+    setEditFormData({
+      name: m.Name,
+      categoryId: m.CategoryID.toString(),
+      quantity: m.Quantity.toString(),
+      totalPrice: m.TotalPrice.toString(),
+      link: m.Link || ""
+    })
+    setIsEditOpen(true)
+  }
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedMaterial) return
+    setUpdating(true)
+    try {
+      const response = await fetch(`http://localhost:3001/api/materials/${selectedMaterial.ID}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...editFormData,
+          name: toTitleCase(editFormData.name)
+        })
+      })
+      if (response.ok) {
+        toast.success(t("common.notifications.updated"))
+        setIsEditOpen(false)
+        fetchData()
+      }
+    } catch (error) {
+      console.error("Failed to update material:", error)
+    } finally {
+      setUpdating(false)
     }
   }
 
@@ -249,7 +309,7 @@ export default function MaterialsPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("materials.category")}</Label>
+                      <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("common.category")}</Label>
                       <Popover open={openCategory} onOpenChange={setOpenCategory}>
                         <PopoverTrigger asChild>
                           <Button
@@ -268,7 +328,7 @@ export default function MaterialsPage() {
                         </PopoverTrigger>
                         <PopoverContent className="w-[200px] p-0" align="start">
                           <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("materials.category")}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("common.category")}</span>
                             <Button 
                               variant="ghost" 
                               size="icon" 
@@ -295,14 +355,24 @@ export default function MaterialsPage() {
                                       setFormData({ ...formData, categoryId: cat.ID.toString() })
                                       setOpenCategory(false)
                                     }}
+                                    className="flex items-center justify-between group cursor-pointer"
                                   >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        formData.categoryId === cat.ID.toString() ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    {cat.Name}
+                                    <div className="flex items-center gap-2">
+                                      <Check className={cn("h-4 w-4 text-primary", formData.categoryId === cat.ID.toString() ? "opacity-100" : "opacity-0")} />
+                                      {cat.Name}
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 transition-all"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDeleteCategory(cat.ID)
+                                      }}
+                                      disabled={deletingCategoryId === cat.ID}
+                                    >
+                                      {deletingCategoryId === cat.ID ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                    </Button>
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
@@ -317,18 +387,27 @@ export default function MaterialsPage() {
                         <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("materials.quantity")}</Label>
                         <Input
                           type="number"
+                          step="50"
+                          min="1"
+                          max="2500"
+                          placeholder="100"
                           value={formData.quantity}
                           onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                          required
                           className="bg-background/40 border-muted/30 transition-all"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("materials.total_price")} (TL)</Label>
+                        <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("materials.total_price")}</Label>
                         <Input
                           type="number"
-                          step="0.01"
+                          step="50"
+                          min="1"
+                          max="5000"
+                          placeholder="100"
                           value={formData.totalPrice}
                           onChange={(e) => setFormData({ ...formData, totalPrice: e.target.value })}
+                          required
                           className="bg-background/40 border-muted/30 transition-all"
                         />
                       </div>
@@ -337,15 +416,19 @@ export default function MaterialsPage() {
                     <div className="space-y-2">
                       <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("materials.link")}</Label>
                       <Input
-                        placeholder="Ürün linki (isteğe bağlı)"
+                        placeholder="https://..."
                         value={formData.link}
                         onChange={(e) => setFormData({ ...formData, link: e.target.value })}
                         className="bg-background/40 border-muted/30 transition-all"
                       />
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={submitting || !isFormValid}>
-                      {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                    <Button 
+                      type="submit" 
+                      className="w-full h-10 font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all active:scale-[0.98]" 
+                      disabled={!isFormValid || submitting}
+                    >
+                      {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Tag className="h-4 w-4 mr-2" />}
                       {t("materials.save")}
                     </Button>
                   </form>
@@ -354,47 +437,66 @@ export default function MaterialsPage() {
             </div>
           </Card>
 
-          <Card id="category-management" className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Tag className="h-4 w-4 text-primary" />
-                {t("materials.categories")}
-              </CardTitle>
-              <CardDescription>{t("materials.categories_desc")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAddCategory} className="flex gap-2">
-                <Input
-                  placeholder={t("models.add_category_placeholder")}
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  className="bg-background/40 border-muted/30"
-                />
-                <Button size="icon" type="submit" disabled={addingCategory || !newCategory.trim()}>
-                  {addingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                </Button>
-              </form>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {categories.map((cat) => (
-                  <div key={cat.ID} className="group relative">
-                    <span className="px-2.5 py-1 pr-7 rounded-md bg-muted/30 border border-muted/20 text-xs font-medium flex items-center gap-1">
-                      {cat.Name}
-                    </span>
-                    <button
-                      onClick={() => handleDeleteCategory(cat.ID)}
-                      disabled={deletingCategoryId === cat.ID}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      {deletingCategoryId === cat.ID ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-3 w-3" />
-                      )}
-                    </button>
-                  </div>
-                ))}
+          <Card id="category-management" className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
+            <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+              <div className="space-y-1.5">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Layers className="h-3.5 w-3.5 text-primary" />
+                  {t("materials.categories")}
+                </CardTitle>
+                <CardDescription className="text-[10px]">
+                  {t("materials.categories_desc")}
+                </CardDescription>
               </div>
-            </CardContent>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setIsCatOpen(!isCatOpen)}
+                className="h-7 w-7 p-0"
+              >
+                {isCatOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </Button>
+            </CardHeader>
+            <div className={cn(
+              "grid transition-all duration-300 ease-in-out",
+              isCatOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+            )}>
+              <div className="overflow-hidden">
+                <CardContent className="pb-4">
+                  <form onSubmit={handleAddCategory} className="flex gap-2">
+                    <Input
+                      placeholder={t("common.add_category")}
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      className="bg-background/40 border-muted/30 h-9 text-xs"
+                    />
+                    <Button size="icon" type="submit" disabled={addingCategory || !newCategory.trim()}>
+                      {addingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    </Button>
+                  </form>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {categories.map((cat) => (
+                      <div key={cat.ID} className="group relative">
+                        <span className="px-2.5 py-1 pr-7 rounded-md bg-muted/30 border border-muted/20 text-xs font-medium flex items-center gap-1">
+                          {cat.Name}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteCategory(cat.ID)}
+                          disabled={deletingCategoryId === cat.ID}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          {deletingCategoryId === cat.ID ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3 w-3" />
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </div>
+            </div>
           </Card>
         </div>
 
@@ -426,10 +528,10 @@ export default function MaterialsPage() {
                    <TableHeader className="bg-muted/10">
                      <TableRow>
                        <TableHead className="px-6">{t("models.table.name")}</TableHead>
-                       <TableHead className="text-center">{t("models.table.category")}</TableHead>
+                       <TableHead className="text-center">{t("common.category")}</TableHead>
                        <TableHead className="text-center">{t("materials.table.unit_price")}</TableHead>
                        <TableHead className="text-center">{t("materials.table.current")}</TableHead>
-                       <TableHead className="text-center">{t("materials.table.link")}</TableHead>
+                       <TableHead className="text-center">{t("materials.link")}</TableHead>
                        <TableHead className="px-6 text-right"></TableHead>
                      </TableRow>
                    </TableHeader>
@@ -438,7 +540,7 @@ export default function MaterialsPage() {
                        <TableRow>
                          <TableCell colSpan={6} className="h-48 text-center text-muted-foreground opacity-50">
                            <Search className="h-12 w-12 mx-auto mb-2" />
-                           <p>{t("materials.table.no_data")}</p>
+                           <p>{t("common.no_data")}</p>
                          </TableCell>
                        </TableRow>
                      ) : (
@@ -450,7 +552,7 @@ export default function MaterialsPage() {
                                 {m.CategoryName}
                              </span>
                            </TableCell>
-                           <TableCell className="text-center font-bold">{(m.TotalPrice / m.Quantity).toFixed(2)} TL</TableCell>
+                           <TableCell className="text-center font-bold">{(m.TotalPrice / m.Quantity).toFixed(2)}</TableCell>
                            <TableCell className="text-center">{m.Quantity} Adet</TableCell>
                            <TableCell className="text-center">
                              {m.Link ? (
@@ -467,9 +569,17 @@ export default function MaterialsPage() {
                                  </Button>
                                </DropdownMenuTrigger>
                                <DropdownMenuContent align="end" className="w-40">
+                                 <DropdownMenuItem onClick={() => { setSelectedMaterial(m); setIsDetailOpen(true); }} className="cursor-pointer">
+                                   <Eye className="mr-2 h-4 w-4" />
+                                   {t("common.details")}
+                                 </DropdownMenuItem>
+                                 <DropdownMenuItem onClick={() => handleEditClick(m)} className="cursor-pointer">
+                                   <Edit3 className="mr-2 h-4 w-4" />
+                                   {t("common.edit")}
+                                 </DropdownMenuItem>
                                  <DropdownMenuItem onClick={() => handleDeleteMaterial(m.ID)} className="text-red-500 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20 cursor-pointer">
                                    <Trash2 className="mr-2 h-4 w-4" />
-                                   {t("filament.actions.delete")}
+                                   {t("common.delete")}
                                  </DropdownMenuItem>
                                </DropdownMenuContent>
                              </DropdownMenu>
@@ -484,6 +594,161 @@ export default function MaterialsPage() {
           </Card>
         </div>
       </div>
+
+      {/* Detail Dialog */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="max-w-md bg-background/95 backdrop-blur-xl border-muted/30">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+              <Box className="h-6 w-6 text-primary" />
+              {selectedMaterial?.Name}
+            </DialogTitle>
+            <DialogDescription>
+              Malzeme detayları ve stok durumu.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-6 py-4">
+            <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-muted/30">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("common.category")}</p>
+                <p className="text-sm font-semibold">{selectedMaterial?.CategoryName}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("materials.quantity")}</p>
+                <p className="text-sm font-semibold">{selectedMaterial?.Quantity} Adet</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("materials.total_price")}</p>
+                <p className="text-sm font-semibold">{selectedMaterial?.TotalPrice}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("materials.table.unit_price")}</p>
+                <p className="text-sm font-semibold">
+                  {selectedMaterial ? (selectedMaterial.TotalPrice / selectedMaterial.Quantity).toFixed(2) : "0.00"}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1 p-4 bg-primary/5 rounded-xl border border-primary/10 flex items-center justify-between">
+               <div className="flex items-center gap-3">
+                 <AlertCircle className="h-5 w-5 text-primary" />
+                 <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Kayıt Tarihi</p>
+                    <p className="text-sm font-medium">{selectedMaterial?.PurchaseDate ? new Date(selectedMaterial.PurchaseDate).toLocaleDateString('tr-TR') : "-"}</p>
+                 </div>
+               </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="sm:justify-between items-center border-t border-muted/20 pt-4">
+            <div className="flex items-center gap-2">
+              {selectedMaterial?.Link ? (
+                <Button variant="outline" size="sm" asChild className="h-8 gap-2 border-primary/30 text-primary hover:bg-primary/5">
+                  <a href={selectedMaterial.Link} target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Link
+                  </a>
+                </Button>
+              ) : (
+                <span className="text-[10px] text-muted-foreground italic px-2">Bağlantı yok</span>
+              )}
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setIsDetailOpen(false)} className="h-8 px-6">{t("common.close")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-md bg-background/95 backdrop-blur-xl border-muted/30">
+          <DialogHeader>
+            <DialogTitle>{t("common.edit")}</DialogTitle>
+            <DialogDescription>
+              Malzeme bilgilerini güncelleyin.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdate} className="space-y-5 py-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold">{t("materials.name")}</Label>
+              <Input
+                value={editFormData.name}
+                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold">{t("common.category")}</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    {categories.find(c => c.ID.toString() === editFormData.categoryId)?.Name || t("common.select")}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0">
+                  <Command>
+                    <CommandInput placeholder={t("common.search")} />
+                    <CommandList>
+                      <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                      <CommandGroup>
+                        {categories.map((cat) => (
+                          <CommandItem
+                            key={cat.ID}
+                            onSelect={() => setEditFormData({ ...editFormData, categoryId: cat.ID.toString() })}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", editFormData.categoryId === cat.ID.toString() ? "opacity-100" : "opacity-0")} />
+                            {cat.Name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">{t("materials.quantity")}</Label>
+                <Input
+                  type="number"
+                  step="50"
+                  min="1"
+                  max="2500"
+                  value={editFormData.quantity}
+                  onChange={(e) => setEditFormData({ ...editFormData, quantity: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">{t("materials.total_price")}</Label>
+                <Input
+                  type="number"
+                  step="50"
+                  min="1"
+                  max="5000"
+                  value={editFormData.totalPrice}
+                  onChange={(e) => setEditFormData({ ...editFormData, totalPrice: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold">{t("materials.link")}</Label>
+              <Input
+                value={editFormData.link}
+                onChange={(e) => setEditFormData({ ...editFormData, link: e.target.value })}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>{t("common.cancel")}</Button>
+              <Button type="submit" disabled={updating}>
+                {updating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : t("common.save")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

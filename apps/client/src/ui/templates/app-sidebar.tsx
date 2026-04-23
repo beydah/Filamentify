@@ -105,7 +105,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       icon: Palette,
     },
     {
-      title: t("nav.members"),
+      title: t("nav.users"),
       url: "/admin/members",
       icon: Users2,
     },

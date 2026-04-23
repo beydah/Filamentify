@@ -1007,7 +1007,7 @@ export default function FilamentPage() {
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("filament.details.price")}</p>
-                <p className="text-sm font-medium">{detailFilament?.Price} TL</p>
+                <p className="text-sm font-medium">{detailFilament?.Price}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("filament.details.purchase_date")}</p>

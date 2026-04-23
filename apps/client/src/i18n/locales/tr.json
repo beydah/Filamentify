@@ -7,7 +7,7 @@
     "actions": "İşlemler",
     "saving": "Kaydediliyor...",
     "loading": "Yükleniyor...",
-    "updated": "Düzenlendi",
+    "updated": "Güncellendi",
     "search": "Ara...",
     "no_data": "Veri bulunamadı.",
     "select": "Seçiniz...",
@@ -25,7 +25,8 @@
       "deleted": "Silindi",
       "delete_error": "Silinemedi",
       "cat_deleted": "Kategori silindi",
-      "cat_delete_error": "Kategori silinemedi"
+      "cat_delete_error": "Kategori silinemedi",
+      "updated": "Başarıyla güncellendi"
     }
   },
   "nav": {
@@ -36,7 +37,7 @@
     "materials": "Malzemeler",
     "models": "Modeller",
     "account": "Hesap",
-    "members": "Üyeler",
+    "users": "Kullanıcılar",
     "settings": "Ayarlar",
     "stats": "İstatistikler",
     "products": "Ürünler",
@@ -157,6 +158,22 @@
     "table": {
       "unit_price": "Birim Fiyat",
       "current": "Mevcut"
+    }
+  },
+  "products": {
+    "new_record": "Ürün Ekle",
+    "new_record_desc": "Mağaza için yeni ürün kaydı.",
+    "name": "Ürün Adı",
+    "description": "Açıklama",
+    "price": "Satış Fiyatı",
+    "stock": "Stok Adedi",
+    "image": "Görsel URL",
+    "inventory": "Ürün Listesi",
+    "inventory_desc": "Mağazadaki tüm ürünler.",
+    "table": {
+      "name": "Ürün",
+      "price": "Fiyat",
+      "stock": "Stok"
     }
   }
 }

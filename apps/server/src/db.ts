@@ -63,6 +63,16 @@ db.exec(`
     FOREIGN KEY (CategoryID) REFERENCES MaterialCategory_TB(ID)
   );
 
+  CREATE TABLE IF NOT EXISTS Product_TB (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    Name TEXT NOT NULL,
+    Description TEXT,
+    Price REAL NOT NULL,
+    Stock INTEGER DEFAULT 0,
+    Image TEXT,
+    PurchaseDate DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   -- Ensure Name column exists if table was created before
   PRAGMA table_info(Filament_TB);
   PRAGMA table_info(Model_TB);

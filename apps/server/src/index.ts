@@ -313,6 +313,21 @@ app.post("/api/materials", (req, res) => {
   })
 })
 
+app.patch("/api/materials/:id", (req, res) => {
+  const { id } = req.params
+  const { categoryId, name, quantity, totalPrice, link } = req.body
+  try {
+    db.prepare(`
+      UPDATE Material_TB 
+      SET CategoryID = ?, Name = ?, Quantity = ?, TotalPrice = ?, Link = ?
+      WHERE ID = ?
+    `).run(categoryId, name, quantity, totalPrice, link, id)
+    res.json({ message: "Material updated successfully" })
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update material" })
+  }
+})
+
 app.delete("/api/materials/:id", (req, res) => {
   const { id } = req.params
   try {
@@ -320,6 +335,50 @@ app.delete("/api/materials/:id", (req, res) => {
     res.json({ message: "Material deleted successfully" })
   } catch (error) {
     res.status(500).json({ error: "Failed to delete material" })
+  }
+})
+
+// Product Endpoints
+app.get("/api/products", (req, res) => {
+  const products = db.prepare("SELECT * FROM Product_TB").all()
+  res.json(products)
+})
+
+app.post("/api/products", (req, res) => {
+  const { name, description, price, stock, image } = req.body
+  try {
+    const info = db.prepare(`
+      INSERT INTO Product_TB (Name, Description, Price, Stock, Image) 
+      VALUES (?, ?, ?, ?, ?)
+    `).run(name, description, price, stock, image)
+    res.status(201).json({ ID: info.lastInsertRowid, Name: name, Description: description, Price: price, Stock: stock, Image: image })
+  } catch (error) {
+    res.status(400).json({ error: "Failed to create product" })
+  }
+})
+
+app.patch("/api/products/:id", (req, res) => {
+  const { id } = req.params
+  const { name, description, price, stock, image } = req.body
+  try {
+    db.prepare(`
+      UPDATE Product_TB 
+      SET Name = ?, Description = ?, Price = ?, Stock = ?, Image = ?
+      WHERE ID = ?
+    `).run(name, description, price, stock, image, id)
+    res.json({ message: "Product updated successfully" })
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update product" })
+  }
+})
+
+app.delete("/api/products/:id", (req, res) => {
+  const { id } = req.params
+  try {
+    db.prepare("DELETE FROM Product_TB WHERE ID = ?").run(id)
+    res.json({ message: "Product deleted successfully" })
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete product" })
   }
 })
 
