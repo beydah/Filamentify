@@ -22,10 +22,9 @@ import {
   Eye
 } from "lucide-react"
 import { Canvas } from "@react-three/fiber"
-import { OrbitControls, Stage, Gltf, Center, useHelper } from "@react-three/drei"
+import { OrbitControls, Stage, Center } from "@react-three/drei"
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js"
 import { useLoader } from "@react-three/fiber"
-import * as THREE from "three"
 import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
@@ -430,7 +429,7 @@ export default function ModelsPage() {
                             <span className="truncate">
                               {formData.categoryId
                                 ? categories.find((cat) => cat.ID.toString() === formData.categoryId)?.Name
-                                : t("models.select_category")}
+                                : t("common.select_category")}
                             </span>
                             <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
                           </Button>
@@ -446,15 +445,15 @@ export default function ModelsPage() {
                                 setOpenCategory(false)
                                 document.getElementById('category-management')?.scrollIntoView({ behavior: 'smooth' })
                               }}
-                              title={t("models.add_category_placeholder")}
+                              title={t("common.add_category")}
                             >
                               <Plus className="h-3 w-3" />
                             </Button>
                           </div>
                           <Command>
-                            <CommandInput placeholder={t("models.search_category")} />
+                            <CommandInput placeholder={t("common.search_category")} />
                             <CommandList className="max-h-[200px] overflow-y-auto scrollbar-none">
-                              <CommandEmpty>{t("models.category_not_found")}</CommandEmpty>
+                              <CommandEmpty>{t("common.category_not_found")}</CommandEmpty>
                               <CommandGroup>
                                 {categories.map((cat) => (
                                   <CommandItem
@@ -944,37 +943,43 @@ export default function ModelsPage() {
           </DialogHeader>
           
           <div className="grid gap-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4 bg-muted/20 p-4 rounded-xl border border-muted/30">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.category")}</p>
-                <p className="text-sm font-medium">{detailModel?.CategoryName}</p>
+                <p className="text-sm font-semibold">{detailModel?.CategoryName}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.details.weight")}</p>
-                <p className="text-sm font-medium">{detailModel?.Gram?.toFixed(2)}g</p>
+                <p className="text-sm font-semibold">{detailModel?.Gram?.toFixed(2)}g</p>
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.table.piece_count")}</p>
-                <p className="text-sm font-medium">{(detailModel?.PieceCount || 1)} Parça</p>
-              </div>
-              <div className="col-span-2 space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.link")}</p>
-                {detailModel?.Link ? (
-                  <a href={detailModel.Link} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
-                    Link <ExternalLink className="h-3 w-3" />
-                  </a>
-                ) : <p className="text-sm text-muted-foreground italic">{t("models.details.no_link")}</p>}
+                <p className="text-sm font-semibold">{(detailModel?.PieceCount || 1)} {t("models.piece")}</p>
               </div>
             </div>
 
             <div className="space-y-3">
               <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.details.preview")}</p>
-              <ModelViewer filePath={detailModel?.FilePath} />
+              <div className="rounded-xl overflow-hidden border border-muted/30 shadow-inner bg-black/5">
+                <ModelViewer filePath={detailModel?.FilePath} />
+              </div>
             </div>
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDetailOpen(false)}>{t("common.close")}</Button>
+          <DialogFooter className="sm:justify-between items-center border-t border-muted/20 pt-4">
+            <div className="flex items-center gap-2">
+              {detailModel?.Link ? (
+                <Button variant="outline" size="sm" asChild className="h-8 gap-2 border-primary/30 text-primary hover:bg-primary/5">
+                  <a href={detailModel.Link} target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    {t("models.link")}
+                  </a>
+                </Button>
+              ) : (
+                <span className="text-[10px] text-muted-foreground italic px-2">{t("models.details.no_link")}</span>
+              )}
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setIsDetailOpen(false)} className="h-8 px-6">{t("common.close")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

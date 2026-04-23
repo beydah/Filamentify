@@ -15,6 +15,11 @@
     "inspect": "Inspect",
     "close": "Close",
     "details": "Detail",
+    "category": "Category",
+    "select_category": "Select Category...",
+    "search_category": "Search category...",
+    "category_not_found": "Category not found.",
+    "add_category": "Add Category",
     "notifications": {
       "added": "Added successfully",
       "deleted": "Deleted",
@@ -43,38 +48,31 @@
   },
   "app": {
     "name": "Filamentify",
-    "description": "Filament Management System"
+    "description": "3D Model Management System"
   },
   "filament": {
     "categories": "Filament Categories",
-    "categories_desc": "Add categories like PLA, ABS, PETG.",
+    "categories_desc": "Group your filaments.",
     "add_category_placeholder": "e.g., PLA Silk",
-    "new_record": "New Filament Record",
-    "new_record_desc": "Save the new filament in stock with details.",
+    "new_record": "Add Filament",
+    "new_record_desc": "Create a stock record.",
     "name": "Name",
     "name_placeholder": "Filament Name (e.g., Black PLA)",
-    "category": "Category",
-    "select_category": "Select Category...",
-    "search_category": "Search category...",
-    "category_not_found": "Category not found.",
     "color_selection": "Color Selection",
     "price": "Price",
     "gram": "Weight (gr)",
     "purchase_date": "Purchase Date",
     "select_date": "Select date",
     "save": "Save Filament",
-    "saving": "Saving...",
     "inventory": "Filament Inventory",
-    "inventory_desc": "Status of your current filament stocks.",
+    "inventory_desc": "Current filament stocks.",
     "total": "Total",
     "table": {
-      "name": "Name",
-      "category": "Category",
+      "name": "Filament",
       "color": "Color",
       "price": "Price",
       "available": "Available",
-      "purchase_date": "Purchase Date",
-      "no_data": "No filaments added yet."
+      "purchase_date": "Purchase Date"
     },
     "actions": {
       "title": "Actions",
@@ -85,14 +83,14 @@
     },
     "edit_dialog": {
       "title": "Edit Filament",
-      "desc": "Update filament information.",
+      "desc": "Update information.",
       "save": "Save Changes"
     },
     "delete_confirm": "Are you sure you want to delete this filament?",
     "no_category": "No categories added yet.",
     "details": {
       "title": "Filament Details",
-      "desc": "Filament inventory details",
+      "desc": "Inventory details",
       "status": "Stock Status",
       "color": "Color",
       "price": "Price",
@@ -101,38 +99,33 @@
   },
   "models": {
     "categories": "Model Categories",
-    "categories_desc": "Add categories like Figures, Vehicles, Decoration.",
-    "add_category_placeholder": "e.g., Figures",
+    "categories_desc": "Group your models.",
+    "add_category_placeholder": "e.g., Figure",
     "new_record": "Add Model",
-    "new_record_desc": "Save the new 3D model to your library.",
+    "new_record_desc": "Save a new model.",
     "name": "Model Name",
-    "name_placeholder": "Model Name (e.g., Iron Man Bust)",
-    "category": "Category",
-    "select_category": "Select Category...",
-    "search_category": "Search category...",
-    "category_not_found": "Category not found.",
+    "name_placeholder": "e.g., Iron Man Bust",
     "link": "Model Link",
-    "link_placeholder": "Thingiverse, Printables, etc. link",
+    "link_placeholder": "Thingiverse, Printables, etc.",
     "gram": "Weight (gr)",
-    "gram_placeholder": "Estimated weight",
+    "gram_placeholder": "Weight",
     "piece_count": "Piece Count",
     "piece_count_placeholder": "Number of pieces",
+    "piece": "Piece",
     "save": "Save Model",
-    "saving": "Saving...",
     "library": "Model Library",
-    "library_desc": "Your saved 3D models.",
+    "library_desc": "Your saved models.",
     "total": "Total Models",
     "table": {
       "name": "Model",
       "category": "Category",
       "link": "Link",
       "gram": "Weight",
-      "piece_count": "Pieces",
-      "no_data": "No models added yet."
+      "piece_count": "Piece"
     },
     "edit_dialog": {
       "title": "Edit Model",
-      "desc": "Update model information.",
+      "desc": "Update information.",
       "save": "Save Changes"
     },
     "no_category": "No categories added yet.",
@@ -152,21 +145,18 @@
   "materials": {
     "name": "Material Name",
     "name_placeholder": "Enter material name",
-    "new_record_desc": "Create a new material and stock record.",
-    "category": "Category",
+    "new_record_desc": "Create a material record.",
     "quantity": "Quantity",
     "total_price": "Total Price",
     "link": "Link",
     "save": "Save Material",
     "categories": "Material Categories",
-    "categories_desc": "Categorize your materials.",
+    "categories_desc": "Group your materials.",
     "inventory": "Material List",
-    "inventory_desc": "List of all registered materials.",
+    "inventory_desc": "All registered materials.",
     "table": {
       "unit_price": "Unit Price",
-      "current": "Current",
-      "no_data": "No materials added yet."
-    },
-    "add_category_placeholder": "Category name"
+      "current": "Current"
+    }
   }
 }

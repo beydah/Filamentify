@@ -14,7 +14,19 @@
     "all": "Hepsi",
     "inspect": "İncele",
     "close": "Kapat",
-    "details": "Detay"
+    "details": "Detay",
+    "category": "Kategori",
+    "select_category": "Kategori Seçin...",
+    "search_category": "Kategori ara...",
+    "category_not_found": "Kategori bulunamadı.",
+    "add_category": "Kategori Ekle",
+    "notifications": {
+      "added": "Başarıyla eklendi",
+      "deleted": "Silindi",
+      "delete_error": "Silinemedi",
+      "cat_deleted": "Kategori silindi",
+      "cat_delete_error": "Kategori silinemedi"
+    }
   },
   "nav": {
     "dashboard": "Panel",
@@ -40,36 +52,27 @@
   },
   "filament": {
     "categories": "Filament Kategorileri",
-    "categories_desc": "PLA, ABS, PETG gibi kategoriler ekleyin.",
+    "categories_desc": "Filamentlerinizi gruplandırın.",
     "add_category_placeholder": "Örn: PLA Silk",
     "new_record": "Filament Ekle",
-    "new_record_desc": "Stoktaki yeni filamenti detaylarıyla kaydedin.",
+    "new_record_desc": "Stok kaydı oluşturun.",
     "name": "İsim",
     "name_placeholder": "Filament İsmi (Örn: Siyah PLA)",
-    "category": "Kategori",
-    "select_category": "Kategori Seçin...",
-    "search_category": "Kategori ara...",
-    "category_not_found": "Kategori bulunamadı.",
     "color_selection": "Renk Seçimi",
     "price": "Fiyat",
     "gram": "Gramaj (gr)",
     "purchase_date": "Alım Tarihi",
     "select_date": "Tarih seçin",
     "save": "Filamenti Kaydet",
-    "saving": "Kaydediliyor...",
     "inventory": "Filament Envanteri",
-    "inventory_desc": "Mevcut filament stoklarınızın durumu.",
+    "inventory_desc": "Mevcut filament stoklarınız.",
     "total": "Toplam",
     "table": {
       "name": "Filament",
-      "category": "Kategori",
       "color": "Renk",
       "price": "Fiyat",
       "available": "Mevcut",
-      "purchase_date": "Alım Tarihi",
-      "no_data": "Henüz filament eklenmemiş.",
-      "filter_low": "Kritik (%20 altı)",
-      "filter_high": "Yeterli (%20 üstü)"
+      "purchase_date": "Alım Tarihi"
     },
     "actions": {
       "title": "İşlemler",
@@ -80,60 +83,49 @@
     },
     "edit_dialog": {
       "title": "Filament Düzenle",
-      "desc": "Filament bilgilerini güncelleyin.",
+      "desc": "Bilgileri güncelleyin.",
       "save": "Değişiklikleri Kaydet"
     },
     "delete_confirm": "Bu filamenti silmek istediğinize emin misiniz?",
     "no_category": "Henüz kategori eklenmemiş.",
     "details": {
       "title": "Filament Detayları",
-      "desc": "Filament envanter detayları",
+      "desc": "Envanter detayları",
       "status": "Stok Durumu",
       "color": "Renk",
       "price": "Fiyat",
       "purchase_date": "Satın Alım Tarihi"
-    },
-    "notifications": {
-      "added": "Filament başarıyla eklendi",
-      "deleted": "Filament silindi",
-      "delete_error": "Filament silinemedi",
-      "cat_delete_error": "Kategori silinemedi"
     }
   },
   "models": {
     "categories": "Model Kategorileri",
-    "categories_desc": "Figür, Araç, Dekorasyon gibi kategoriler ekleyin.",
+    "categories_desc": "Modellerinizi gruplandırın.",
     "add_category_placeholder": "Örn: Figür",
     "new_record": "Model Ekle",
-    "new_record_desc": "Yeni 3D modeli kütüphanenize kaydedin.",
+    "new_record_desc": "Yeni model kaydedin.",
     "name": "Model İsmi",
-    "name_placeholder": "Model İsmi (Örn: Iron Man Büst)",
-    "category": "Kategori",
-    "select_category": "Kategori Seçin...",
-    "search_category": "Kategori ara...",
-    "category_not_found": "Kategori bulunamadı.",
+    "name_placeholder": "Örn: Iron Man Büst",
     "link": "Model Linki",
-    "link_placeholder": "Thingiverse, Printables vb. linki",
+    "link_placeholder": "Thingiverse, Printables vb.",
     "gram": "Gramaj (gr)",
-    "gram_placeholder": "Tahmini ağırlık",
+    "gram_placeholder": "Ağırlık",
     "piece_count": "Parça Sayısı",
     "piece_count_placeholder": "Parça sayısı",
+    "piece": "Parça",
     "save": "Modeli Kaydet",
-    "saving": "Kaydediliyor...",
     "library": "Model Kütüphanesi",
-    "library_desc": "Kaydedilmiş 3D modelleriniz.",
+    "library_desc": "Kaydedilmiş modelleriniz.",
     "total": "Toplam Model",
     "table": {
       "name": "Model",
       "category": "Kategori",
       "link": "Bağlantı",
       "gram": "Ağırlık",
-      "piece_count": "Parça",
-      "no_data": "Henüz model eklenmemiş."
+      "piece_count": "Parça"
     },
     "edit_dialog": {
       "title": "Modeli Düzenle",
-      "desc": "Model bilgilerini güncelleyin.",
+      "desc": "Bilgileri güncelleyin.",
       "save": "Değişiklikleri Kaydet"
     },
     "no_category": "Henüz kategori eklenmemiş.",
@@ -148,29 +140,23 @@
       "no_link": "Link yok",
       "no_file": "Dosya bulunamadı",
       "format_error": "Model dosyası görüntülenemiyor"
-    },
     }
   },
-    "materials": {
-      "name": "Malzeme Adı",
-      "name_placeholder": "Malzeme adını giriniz",
-      "new_record_desc": "Yeni malzeme ve stok kaydı oluşturun.",
-      "category": "Kategori",
-      "quantity": "Adet",
-      "total_price": "Toplam Fiyat",
-      "link": "Bağlantı",
-      "save": "Malzemeyi Kaydet",
-      "categories": "Malzeme Kategorileri",
-      "categories_desc": "Malzemelerinizi kategorize edin.",
-      "inventory": "Malzeme Listesi",
-      "inventory_desc": "Kayıtlı tüm malzemelerin listesi.",
-      "table": {
-        "unit_price": "Adet Fiyat",
-        "current": "Mevcut",
-        "no_data": "Henüz malzeme eklenmemiş."
-      },
-      "add_category_placeholder": "Kategori adı"
-    }
+  "materials": {
+    "name": "Malzeme Adı",
+    "name_placeholder": "Malzeme adını giriniz",
+    "new_record_desc": "Malzeme kaydı oluşturun.",
+    "quantity": "Adet",
+    "total_price": "Toplam Fiyat",
+    "link": "Bağlantı",
+    "save": "Malzemeyi Kaydet",
+    "categories": "Malzeme Kategorileri",
+    "categories_desc": "Malzemelerinizi gruplandırın.",
+    "inventory": "Malzeme Listesi",
+    "inventory_desc": "Kayıtlı tüm malzemeler.",
+    "table": {
+      "unit_price": "Birim Fiyat",
+      "current": "Mevcut"
     }
   }
 }

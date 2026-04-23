@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next"
 import { 
   Plus, 
   Search, 
-  Layers, 
   ChevronDown, 
   ChevronUp,
   Tag,
@@ -13,8 +12,6 @@ import {
   ChevronsUpDown,
   ExternalLink,
   MoreVertical,
-  Edit3,
-  Eye,
   Box
 } from "lucide-react"
 import { Button } from "@/ui/controls/button"
@@ -47,8 +44,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/ui/controls/dropdown-menu"
 import { toast } from "sonner"
@@ -264,9 +259,9 @@ export default function MaterialsPage() {
                             className="w-full justify-between bg-background/40 border-muted/30 h-10 font-normal px-3"
                           >
                             <span className="truncate">
-                              {formData.categoryId
-                                ? categories.find((cat) => cat.ID.toString() === formData.categoryId)?.Name
-                                : t("models.select_category")}
+                                {formData.categoryId
+                                  ? categories.find((cat) => cat.ID.toString() === formData.categoryId)?.Name
+                                  : t("common.select_category")}
                             </span>
                             <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
                           </Button>
@@ -282,15 +277,15 @@ export default function MaterialsPage() {
                                 setOpenCategory(false)
                                 document.getElementById('category-management')?.scrollIntoView({ behavior: 'smooth' })
                               }}
-                              title={t("models.add_category_placeholder")}
+                                title={t("common.add_category")}
                             >
                               <Plus className="h-3 w-3" />
                             </Button>
                           </div>
                           <Command>
-                            <CommandInput placeholder={t("models.search_category")} />
+                            <CommandInput placeholder={t("common.search_category")} />
                             <CommandList className="max-h-[200px] overflow-y-auto scrollbar-none">
-                              <CommandEmpty>{t("models.category_not_found")}</CommandEmpty>
+                              <CommandEmpty>{t("common.category_not_found")}</CommandEmpty>
                               <CommandGroup>
                                 {categories.map((cat) => (
                                   <CommandItem

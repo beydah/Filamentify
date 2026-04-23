@@ -19,7 +19,6 @@ import {
   Filter,
   FilterX,
   Eye,
-  Settings,
   Database
 } from "lucide-react"
 import { format, parseISO } from "date-fns"
@@ -408,7 +407,7 @@ export default function FilamentPage() {
                               <span className="truncate">
                                 {formData.categoryId
                                   ? categories.find((cat) => cat.ID.toString() === formData.categoryId)?.Name
-                                  : t("filament.category")}
+                                  : t("common.select_category")}
                               </span>
                               <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
                             </Button>
@@ -424,15 +423,15 @@ export default function FilamentPage() {
                                   setOpenCategory(false)
                                   document.getElementById('category-management')?.scrollIntoView({ behavior: 'smooth' })
                                 }}
-                                title={t("filament.add_category_placeholder")}
+                                title={t("common.add_category")}
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
                             </div>
                             <Command>
-                              <CommandInput placeholder={t("filament.search_category")} />
+                              <CommandInput placeholder={t("common.search_category")} />
                               <CommandList className="max-h-[200px] overflow-y-auto scrollbar-none">
-                                <CommandEmpty>{t("filament.category_not_found")}</CommandEmpty>
+                                <CommandEmpty>{t("common.category_not_found")}</CommandEmpty>
                                 <CommandGroup>
                                   {categories.map((cat) => (
                                     <CommandItem
@@ -720,7 +719,7 @@ export default function FilamentPage() {
                                   {uniqueColors.slice(0, 5).map(color => (
                                     <button 
                                       key={color} 
-                                      onClick={() => { setFilterColor(color); setOpenColorFilter(false); }}
+                                      onClick={() => { setFilterColor(color); setOpenColor(false); }}
                                       className={cn(
                                         "w-6 h-6 rounded-full border-2 transition-all hover:scale-110 shadow-sm",
                                         filterColor === color ? "border-primary ring-2 ring-primary/20" : "border-muted"
