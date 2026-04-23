@@ -19,5 +19,45 @@
   "app": {
     "name": "Filamentify",
     "description": "Filament Yönetim Sistemi"
+  },
+  "filament": {
+    "categories": "Filament Kategorileri",
+    "categories_desc": "PLA, ABS, PETG gibi kategoriler ekleyin.",
+    "add_category_placeholder": "Örn: PLA Silk",
+    "new_record": "Yeni Filament Kaydı",
+    "new_record_desc": "Stoktaki yeni filamenti detaylarıyla kaydedin.",
+    "name": "İsim",
+    "name_placeholder": "Filament İsmi (Örn: Siyah PLA)",
+    "category": "Kategori",
+    "select_category": "Kategori Seçin...",
+    "search_category": "Kategori ara...",
+    "category_not_found": "Kategori bulunamadı.",
+    "color_selection": "Renk Seçimi",
+    "price": "Fiyat",
+    "gram": "Gramaj (gr)",
+    "purchase_date": "Alım Tarihi",
+    "select_date": "Tarih seçin",
+    "save": "Filamenti Kaydet",
+    "saving": "Kaydediliyor...",
+    "inventory": "Filament Envanteri",
+    "inventory_desc": "Mevcut filament stoklarınızın durumu.",
+    "total": "Toplam",
+    "table": {
+      "name": "İsim",
+      "category": "Kategori",
+      "color": "Renk",
+      "price": "Fiyat",
+      "available": "Mevcut",
+      "no_data": "Henüz filament eklenmemiş."
+    },
+    "actions": {
+      "title": "İşlemler",
+      "detail": "Detay",
+      "edit": "Düzenle",
+      "delete": "Sil",
+      "soon": "yakında!"
+    },
+    "delete_confirm": "Bu filamenti silmek istediğinize emin misiniz?",
+    "no_category": "Henüz kategori eklenmemiş."
   }
 }

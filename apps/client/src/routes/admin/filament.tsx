@@ -18,7 +18,7 @@ import {
   Edit3
 } from "lucide-react"
 import { format } from "date-fns"
-import { tr } from "date-fns/locale"
+import { tr, enUS } from "date-fns/locale"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -80,29 +80,21 @@ interface Filament {
   Status: string
 }
 
-// 10 core colors from black to white including primary
 const presetColors = [
-  "#000000", // Black
-  "#4b5563", // Gray
-  "#ffffff", // White
-  "#ef4444", // Red
-  "#f97316", // Orange
-  "#f59e0b", // Yellow
-  "#10b981", // Green
-  "#3b82f6", // Blue
-  "#6366f1", // Indigo
-  "#a855f7", // Purple
+  "#000000", "#4b5563", "#ffffff", "#ef4444", "#f97316", 
+  "#f59e0b", "#10b981", "#3b82f6", "#6366f1", "#a855f7"
 ]
 
 export default function FilamentPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const currentLocale = i18n.language === 'tr' ? tr : enUS
+  
   const [filaments, setFilaments] = React.useState<Filament[]>([])
   const [categories, setCategories] = React.useState<Category[]>([])
   const [loading, setLoading] = React.useState(true)
   const [submitting, setSubmitting] = React.useState(false)
   const [addingCategory, setAddingCategory] = React.useState(false)
   const [deletingCategoryId, setDeletingCategoryId] = React.useState<number | null>(null)
-  const [deletingFilamentId, setDeletingFilamentId] = React.useState<number | null>(null)
 
   // Form State
   const [newCategory, setNewCategory] = React.useState("")
@@ -135,7 +127,10 @@ export default function FilamentPage() {
   }
 
   React.useEffect(() => {
-    fetchData()
+    const load = async () => {
+      await fetchData()
+    }
+    load()
   }, [])
 
   const handleAddCategory = async (e: React.FormEvent) => {
@@ -179,8 +174,6 @@ export default function FilamentPage() {
   }
 
   const handleDeleteFilament = async (id: number) => {
-    if (!confirm("Bu filamenti silmek istediğinize emin misiniz?")) return
-    setDeletingFilamentId(id)
     try {
       const response = await fetch(`http://localhost:3001/api/filaments/${id}`, {
         method: "DELETE",
@@ -192,15 +185,13 @@ export default function FilamentPage() {
       }
     } catch (error) {
       console.error("Failed to delete filament:", error)
-    } finally {
-      setDeletingFilamentId(null)
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.categoryId) {
-      alert("Lütfen bir kategori seçin")
+      alert(t("filament.select_category"))
       return
     }
     setSubmitting(true)
@@ -214,7 +205,7 @@ export default function FilamentPage() {
           categoryId: parseInt(formData.categoryId),
           name: formData.name,
           color: formData.color,
-          price: parseFloat(formData.price),
+          price: parseInt(formData.price), // Integer only as requested
           gram: parseInt(formData.gram),
           purchaseDate: formData.purchaseDate.toISOString(),
         }),
@@ -242,7 +233,7 @@ export default function FilamentPage() {
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
-      const { scrollLeft, clientWidth } = scrollContainerRef.current
+      const { scrollLeft } = scrollContainerRef.current
       const scrollTo = direction === 'left' ? scrollLeft - 100 : scrollLeft + 100
       scrollContainerRef.current.scrollTo({ left: scrollTo, behavior: 'smooth' })
     }
@@ -264,18 +255,18 @@ export default function FilamentPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Palette className="h-4 w-4 text-primary" />
-                Yeni Filament Kaydı
+                {t("filament.new_record")}
               </CardTitle>
               <CardDescription>
-                Stoktaki yeni filamenti detaylarıyla kaydedin.
+                {t("filament.new_record_desc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">İsim</Label>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{t("filament.name")}</Label>
                   <Input
-                    placeholder="Filament İsmi (Örn: Siyah PLA)"
+                    placeholder={t("filament.name_placeholder")}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
@@ -284,7 +275,7 @@ export default function FilamentPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Kategori</Label>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{t("filament.category")}</Label>
                   <Popover open={openCategory} onOpenChange={setOpenCategory}>
                     <PopoverTrigger asChild>
                       <Button
@@ -295,15 +286,15 @@ export default function FilamentPage() {
                       >
                         {formData.categoryId
                           ? categories.find((cat) => cat.ID.toString() === formData.categoryId)?.Name
-                          : "Kategori Seçin..."}
+                          : t("filament.select_category")}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-0" align="start">
                       <Command>
-                        <CommandInput placeholder="Kategori ara..." />
+                        <CommandInput placeholder={t("filament.search_category")} />
                         <CommandList>
-                          <CommandEmpty>Kategori bulunamadı.</CommandEmpty>
+                          <CommandEmpty>{t("filament.category_not_found")}</CommandEmpty>
                           <CommandGroup>
                             {categories.map((cat) => (
                               <CommandItem
@@ -331,7 +322,7 @@ export default function FilamentPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Renk Seçimi</Label>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{t("filament.color_selection")}</Label>
                   <div className="relative flex items-center gap-2 group">
                     <Button 
                       type="button" 
@@ -360,7 +351,7 @@ export default function FilamentPage() {
                         >
                           {formData.color === color && (
                             <div className="absolute inset-0 flex items-center justify-center">
-                              <Check className={cn("h-5 w-5", color === "#ffffff" || color === "#f5f5dc" ? "text-black" : "text-white")} />
+                              <Check className={cn("h-5 w-5", color === "#ffffff" ? "text-black" : "text-white")} />
                             </div>
                           )}
                         </button>
@@ -377,32 +368,34 @@ export default function FilamentPage() {
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
-                  <div className="flex items-center justify-center pt-1">
-                    <span className="text-[10px] font-mono font-bold tracking-widest text-muted-foreground uppercase bg-muted/30 px-2 py-0.5 rounded-full">
-                      {formData.color}
-                    </span>
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="price" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Fiyat</Label>
+                    <Label htmlFor="price" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{t("filament.price")}</Label>
                     <Input
                       id="price"
                       type="number"
-                      step="0.01"
-                      placeholder="0.00"
+                      step="100"
+                      min="0"
+                      placeholder="0"
                       value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        setFormData({ ...formData, price: isNaN(val) ? "" : val.toString() });
+                      }}
                       required
                       className="bg-background/40 border-muted/30 transition-all"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="gram" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Gramaj (gr)</Label>
+                    <Label htmlFor="gram" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{t("filament.gram")}</Label>
                     <Input
                       id="gram"
                       type="number"
+                      step="50"
+                      min="50"
+                      max="5000"
                       placeholder="1000"
                       value={formData.gram}
                       onChange={(e) => setFormData({ ...formData, gram: e.target.value })}
@@ -415,7 +408,7 @@ export default function FilamentPage() {
                 <div className="space-y-2">
                   <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
                     <CalendarIcon className="h-3 w-3" />
-                    Alım Tarihi
+                    {t("filament.purchase_date")}
                   </Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -427,7 +420,7 @@ export default function FilamentPage() {
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.purchaseDate ? format(formData.purchaseDate, "PPP", { locale: tr }) : <span>Tarih seçin</span>}
+                        {formData.purchaseDate ? format(formData.purchaseDate, "PPP", { locale: currentLocale }) : <span>{t("filament.select_date")}</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -445,12 +438,12 @@ export default function FilamentPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Kaydediliyor...
+                      {t("filament.saving")}
                     </>
                   ) : (
                     <>
                       <Plus className="mr-2 h-4 w-4" />
-                      Filamenti Kaydet
+                      {t("filament.save")}
                     </>
                   )}
                 </Button>
@@ -463,16 +456,16 @@ export default function FilamentPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Tag className="h-4 w-4 text-primary" />
-                Filament Kategorileri
+                {t("filament.categories")}
               </CardTitle>
               <CardDescription>
-                PLA, ABS, PETG gibi kategoriler ekleyin.
+                {t("filament.categories_desc")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddCategory} className="flex gap-2">
                 <Input
-                  placeholder="Örn: PLA Silk"
+                  placeholder={t("filament.add_category_placeholder")}
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
                   className="bg-background/40 border-muted/30 focus:border-primary/50 transition-all"
@@ -501,7 +494,7 @@ export default function FilamentPage() {
                   </div>
                 ))}
                 {categories.length === 0 && !loading && (
-                  <span className="text-xs text-muted-foreground italic">Henüz kategori eklenmemiş.</span>
+                  <span className="text-xs text-muted-foreground italic">{t("filament.no_category")}</span>
                 )}
               </div>
             </CardContent>
@@ -514,14 +507,14 @@ export default function FilamentPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-xl">Filament Envanteri</CardTitle>
+                  <CardTitle className="text-xl">{t("filament.inventory")}</CardTitle>
                   <CardDescription>
-                    Mevcut filament stoklarınızın durumu.
+                    {t("filament.inventory_desc")}
                   </CardDescription>
                 </div>
                 <div className="bg-muted/30 px-3 py-1 rounded-full text-xs font-semibold text-muted-foreground flex items-center gap-2 border border-muted/20">
                   <Info className="h-3 w-3" />
-                  Toplam: {filaments.length}
+                  {t("filament.total")}: {filaments.length}
                 </div>
               </div>
             </CardHeader>
@@ -535,11 +528,11 @@ export default function FilamentPage() {
                   <Table>
                     <TableHeader className="bg-muted/20">
                       <TableRow className="hover:bg-transparent border-muted/20">
-                        <TableHead className="font-semibold">İsim</TableHead>
-                        <TableHead className="font-semibold">Kategori</TableHead>
-                        <TableHead className="font-semibold text-center">Renk</TableHead>
-                        <TableHead className="font-semibold">Fiyat</TableHead>
-                        <TableHead className="font-semibold">Mevcut</TableHead>
+                        <TableHead className="font-semibold">{t("filament.table.name")}</TableHead>
+                        <TableHead className="font-semibold">{t("filament.table.category")}</TableHead>
+                        <TableHead className="font-semibold text-center">{t("filament.table.color")}</TableHead>
+                        <TableHead className="font-semibold">{t("filament.table.price")}</TableHead>
+                        <TableHead className="font-semibold">{t("filament.table.available")}</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -549,7 +542,7 @@ export default function FilamentPage() {
                           <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
                             <div className="flex flex-col items-center gap-2 opacity-50">
                               <Search className="h-12 w-12" />
-                              <p>Henüz filament eklenmemiş.</p>
+                              <p>{t("filament.table.no_data")}</p>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -569,7 +562,7 @@ export default function FilamentPage() {
                                 title={filament.Color}
                               />
                             </TableCell>
-                            <TableCell className="font-medium">{filament.Price.toFixed(2)} ₺</TableCell>
+                            <TableCell className="font-medium">{filament.Price}</TableCell>
                             <TableCell>
                               <div className="flex flex-col gap-1.5 w-full max-w-[120px]">
                                 <div className="flex justify-between text-[10px] font-bold uppercase tracking-tight text-muted-foreground/80">
@@ -591,20 +584,20 @@ export default function FilamentPage() {
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                                    <span className="sr-only">Menüyü aç</span>
+                                    <span className="sr-only">Open menu</span>
                                     <MoreHorizontal className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>İşlemler</DropdownMenuLabel>
+                                  <DropdownMenuLabel>{t("filament.actions.title")}</DropdownMenuLabel>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => alert("Detay sayfası yakında!")}>
+                                  <DropdownMenuItem onClick={() => alert(`${t("filament.actions.detail")} ${t("filament.actions.soon")}`)}>
                                     <Eye className="mr-2 h-4 w-4" />
-                                    Detay
+                                    {t("filament.actions.detail")}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => alert("Düzenleme özelliği yakında!")}>
+                                  <DropdownMenuItem onClick={() => alert(`${t("filament.actions.edit")} ${t("filament.actions.soon")}`)}>
                                     <Edit3 className="mr-2 h-4 w-4" />
-                                    Düzenle
+                                    {t("filament.actions.edit")}
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem 
@@ -612,7 +605,7 @@ export default function FilamentPage() {
                                     className="text-destructive focus:text-destructive"
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" />
-                                    Sil
+                                    {t("filament.actions.delete")}
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>

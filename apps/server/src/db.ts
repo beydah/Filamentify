@@ -34,8 +34,12 @@ db.exec(`
   PRAGMA table_info(Filament_TB);
 `)
 
+interface TableColumn {
+  name: string
+}
+
 // Add Name column if it doesn't exist
-const tableInfo = db.prepare("PRAGMA table_info(Filament_TB)").all() as any[]
+const tableInfo = db.prepare("PRAGMA table_info(Filament_TB)").all() as TableColumn[]
 if (!tableInfo.find(col => col.name === "Name")) {
   db.exec("ALTER TABLE Filament_TB ADD COLUMN Name TEXT")
 }

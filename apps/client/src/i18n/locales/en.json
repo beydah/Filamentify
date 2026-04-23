@@ -8,7 +8,7 @@
     "account": "Account",
     "members": "Members",
     "settings": "Settings",
-    "stats": "Statistics",
+    "stats": "Stats",
     "products": "Products",
     "media": "Media",
     "posts": "Posts",
@@ -19,5 +19,45 @@
   "app": {
     "name": "Filamentify",
     "description": "Filament Management System"
+  },
+  "filament": {
+    "categories": "Filament Categories",
+    "categories_desc": "Add categories like PLA, ABS, PETG.",
+    "add_category_placeholder": "e.g., PLA Silk",
+    "new_record": "New Filament Record",
+    "new_record_desc": "Save the new filament in stock with details.",
+    "name": "Name",
+    "name_placeholder": "Filament Name (e.g., Black PLA)",
+    "category": "Category",
+    "select_category": "Select Category...",
+    "search_category": "Search category...",
+    "category_not_found": "Category not found.",
+    "color_selection": "Color Selection",
+    "price": "Price",
+    "gram": "Weight (gr)",
+    "purchase_date": "Purchase Date",
+    "select_date": "Select date",
+    "save": "Save Filament",
+    "saving": "Saving...",
+    "inventory": "Filament Inventory",
+    "inventory_desc": "Status of your current filament stocks.",
+    "total": "Total",
+    "table": {
+      "name": "Name",
+      "category": "Category",
+      "color": "Color",
+      "price": "Price",
+      "available": "Available",
+      "no_data": "No filaments added yet."
+    },
+    "actions": {
+      "title": "Actions",
+      "detail": "Detail",
+      "edit": "Edit",
+      "delete": "Delete",
+      "soon": "coming soon!"
+    },
+    "delete_confirm": "Are you sure you want to delete this filament?",
+    "no_category": "No categories added yet."
   }
 }

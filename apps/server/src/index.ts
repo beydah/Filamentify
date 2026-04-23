@@ -59,6 +59,11 @@ app.get("/api/filaments", (req, res) => {
 app.post("/api/filaments", (req, res) => {
   const { categoryId, name, color, price, gram, purchaseDate } = req.body
   
+  // Basic validation
+  if (!categoryId || !name || price < 0 || gram < 50 || gram > 5000) {
+    return res.status(400).json({ error: "Invalid filament data" })
+  }
+
   // Available_Gram starts as Gram
   const available_gram = gram
   
