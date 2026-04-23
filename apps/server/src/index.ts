@@ -115,6 +115,89 @@ app.delete("/api/filaments/:id", (req, res) => {
   }
 })
 
+// Model Category Endpoints
+app.get("/api/model-categories", (req, res) => {
+  const categories = db.prepare("SELECT * FROM ModelCategory_TB").all()
+  res.json(categories)
+})
+
+app.post("/api/model-categories", (req, res) => {
+  const { name } = req.body
+  try {
+    const info = db.prepare("INSERT INTO ModelCategory_TB (Name) VALUES (?)").run(name)
+    res.status(201).json({ ID: info.lastInsertRowid, Name: name })
+  } catch (error) {
+    res.status(400).json({ error: "Model category already exists or invalid data" })
+  }
+})
+
+app.delete("/api/model-categories/:id", (req, res) => {
+  const { id } = req.params
+  try {
+    const usage = db.prepare("SELECT COUNT(*) as count FROM Model_TB WHERE CategoryID = ?").get(id) as { count: number }
+    if (usage.count > 0) {
+      return res.status(400).json({ error: "Category is in use and cannot be deleted" })
+    }
+    db.prepare("DELETE FROM ModelCategory_TB WHERE ID = ?").run(id)
+    res.json({ message: "Model category deleted successfully" })
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete model category" })
+  }
+})
+
+// Model Endpoints
+app.get("/api/models", (req, res) => {
+  const models = db.prepare(`
+    SELECT m.*, c.Name as CategoryName 
+    FROM Model_TB m
+    LEFT JOIN ModelCategory_TB c ON m.CategoryID = c.ID
+  `).all()
+  res.json(models)
+})
+
+app.post("/api/models", (req, res) => {
+  const { categoryId, name, link, gram } = req.body
+  if (!categoryId || !name || gram < 0) {
+    return res.status(400).json({ error: "Invalid model data" })
+  }
+  const info = db.prepare(`
+    INSERT INTO Model_TB (CategoryID, Name, Link, Gram) 
+    VALUES (?, ?, ?, ?)
+  `).run(categoryId, name, link, gram)
+  res.status(201).json({ 
+    ID: info.lastInsertRowid, 
+    CategoryID: categoryId,
+    Name: name,
+    Link: link,
+    Gram: gram
+  })
+})
+
+app.patch("/api/models/:id", (req, res) => {
+  const { id } = req.params
+  const { name, categoryId, link, gram } = req.body
+  try {
+    db.prepare(`
+      UPDATE Model_TB 
+      SET Name = ?, CategoryID = ?, Link = ?, Gram = ?
+      WHERE ID = ?
+    `).run(name, categoryId, link, gram, id)
+    res.json({ message: "Model updated successfully" })
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update model" })
+  }
+})
+
+app.delete("/api/models/:id", (req, res) => {
+  const { id } = req.params
+  try {
+    db.prepare("DELETE FROM Model_TB WHERE ID = ?").run(id)
+    res.json({ message: "Model deleted successfully" })
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete model" })
+  }
+})
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`)
 })

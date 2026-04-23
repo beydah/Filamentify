@@ -1,8 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
-import { AppSidebar } from "@/components/app-sidebar"
-import { ThemeProvider } from "@/components/theme-provider"
-import { ModeToggle } from "@/components/mode-toggle"
-import { LanguageToggle } from "@/components/language-toggle"
+import { AppSidebar } from "@/ui/templates/app-sidebar"
+import { ThemeProvider } from "@/ui/providers/theme-provider"
+import { ModeToggle } from "@/ui/components/mode-toggle"
+import { LanguageToggle } from "@/ui/components/language-toggle"
 import "@/i18n"
 
 import {
@@ -12,13 +12,13 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
+} from "@/ui/controls/breadcrumb"
+import { Separator } from "@/ui/controls/separator"
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
+} from "@/ui/controls/sidebar"
 
 // Admin Routes
 import DashboardPage from "@/routes/admin/dashboard"

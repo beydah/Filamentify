@@ -65,5 +65,40 @@
     },
     "delete_confirm": "Are you sure you want to delete this filament?",
     "no_category": "No categories added yet."
+  },
+  "models": {
+    "categories": "Model Categories",
+    "categories_desc": "Add categories like Figures, Vehicles, Decoration.",
+    "add_category_placeholder": "e.g., Figures",
+    "new_record": "Add Model",
+    "new_record_desc": "Save the new 3D model to your library.",
+    "name": "Model Name",
+    "name_placeholder": "Model Name (e.g., Iron Man Bust)",
+    "category": "Category",
+    "select_category": "Select Category...",
+    "search_category": "Search category...",
+    "category_not_found": "Category not found.",
+    "link": "Model Link",
+    "link_placeholder": "Thingiverse, Printables, etc. link",
+    "gram": "Weight (gr)",
+    "gram_placeholder": "Estimated weight",
+    "save": "Save Model",
+    "saving": "Saving...",
+    "library": "Model Library",
+    "library_desc": "Your saved 3D models.",
+    "total": "Total Models",
+    "table": {
+      "name": "Model",
+      "category": "Category",
+      "link": "Link",
+      "gram": "Weight",
+      "no_data": "No models added yet."
+    },
+    "edit_dialog": {
+      "title": "Edit Model",
+      "desc": "Update model information.",
+      "save": "Save Changes"
+    },
+    "no_category": "No categories added yet."
   }
 }

@@ -30,6 +30,21 @@ db.exec(`
     FOREIGN KEY (CategoryID) REFERENCES Category_TB(ID)
   );
 
+  CREATE TABLE IF NOT EXISTS ModelCategory_TB (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    Name TEXT NOT NULL UNIQUE
+  );
+
+  CREATE TABLE IF NOT EXISTS Model_TB (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    CategoryID INTEGER,
+    Name TEXT NOT NULL,
+    Link TEXT,
+    Gram INTEGER NOT NULL,
+    PurchaseDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (CategoryID) REFERENCES ModelCategory_TB(ID)
+  );
+
   -- Ensure Name column exists if table was created before
   PRAGMA table_info(Filament_TB);
 `)

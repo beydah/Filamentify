@@ -15,22 +15,24 @@ import {
   Edit3,
   ChevronUp,
   ChevronDown,
-  X
+  X,
+  Filter,
+  FilterX
 } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { tr, enUS } from "date-fns/locale"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Button } from "@/ui/controls/button"
+import { Input } from "@/ui/controls/input"
+import { Label } from "@/ui/controls/label"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/ui/controls/card"
 import {
   Table,
   TableBody,
@@ -38,12 +40,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/ui/controls/table"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/ui/controls/popover"
 import {
   Command,
   CommandEmpty,
@@ -51,8 +53,8 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
-import { Calendar } from "@/components/ui/calendar"
+} from "@/ui/controls/command"
+import { Calendar } from "@/ui/controls/calendar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,7 +62,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/ui/controls/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -68,7 +70,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/ui/controls/dialog"
 
 interface Category {
   ID: number
@@ -125,6 +127,11 @@ export default function FilamentPage() {
   const [isFormOpen, setIsFormOpen] = React.useState(true)
   const [isCategoriesOpen, setIsCategoriesOpen] = React.useState(false)
 
+  // Filter State
+  const [filterCategory, setFilterCategory] = React.useState<string>("all")
+  const [filterColor, setFilterColor] = React.useState<string>("all")
+  const [filterStock, setFilterStock] = React.useState<string>("all") // all, low, high
+
   // Edit State
   const [editingFilament, setEditingFilament] = React.useState<Filament | null>(null)
   const [editFormData, setEditFormData] = React.useState({
@@ -150,7 +157,7 @@ export default function FilamentPage() {
   const [openCategory, setOpenCategory] = React.useState(false)
   const [openColor, setOpenColor] = React.useState(false)
 
-  const fetchData = async () => {
+  const fetchData = React.useCallback(async () => {
     try {
       const [filRes, catRes] = await Promise.all([
         fetch("http://localhost:3001/api/filaments"),
@@ -165,14 +172,12 @@ export default function FilamentPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   React.useEffect(() => {
-    const load = async () => {
-      await fetchData()
-    }
-    load()
-  }, [])
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchData()
+  }, [fetchData])
 
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -308,6 +313,14 @@ export default function FilamentPage() {
       setUpdating(false)
     }
   }
+
+  const filteredFilaments = filaments.filter(f => {
+    if (filterCategory !== "all" && f.CategoryName !== filterCategory) return false
+    if (filterColor !== "all" && f.Color !== filterColor) return false
+    if (filterStock === "low" && (f.Available_Gram / f.Gram) >= 0.2) return false
+    if (filterStock === "high" && (f.Available_Gram / f.Gram) < 0.2) return false
+    return true
+  })
 
   const isFormValid = formData.name && formData.categoryId && formData.price && formData.gram
 
@@ -604,9 +617,6 @@ export default function FilamentPage() {
                         </button>
                       </div>
                     ))}
-                    {categories.length === 0 && !loading && (
-                      <span className="text-xs text-muted-foreground italic">{t("filament.no_category")}</span>
-                    )}
                   </div>
                 </CardContent>
               </div>
@@ -642,15 +652,83 @@ export default function FilamentPage() {
                     <TableHeader className="bg-muted/10">
                       <TableRow className="hover:bg-transparent border-muted/20">
                         <TableHead className="font-semibold px-6 w-[25%]">{t("filament.table.name")}</TableHead>
-                        <TableHead className="font-semibold text-center w-[20%]">{t("filament.table.category")}</TableHead>
-                        <TableHead className="font-semibold text-center w-[15%]">{t("filament.table.color")}</TableHead>
+                        <TableHead className="font-semibold text-center w-[20%]">
+                          <div className="flex items-center justify-center gap-1">
+                            {t("filament.table.category")}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-muted/30">
+                                  <Filter className={cn("h-3 w-3", filterCategory !== "all" && "text-primary fill-primary")} />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="center" className="w-40">
+                                <DropdownMenuItem onClick={() => setFilterCategory("all")}>Hepsi</DropdownMenuItem>
+                                {categories.map(c => (
+                                  <DropdownMenuItem key={c.ID} onClick={() => setFilterCategory(c.Name)}>{c.Name}</DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableHead>
+                        <TableHead className="font-semibold text-center w-[15%]">
+                          <div className="flex items-center justify-center gap-1">
+                            {t("filament.table.color")}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-muted/30">
+                                  <Filter className={cn("h-3 w-3", filterColor !== "all" && "text-primary fill-primary")} />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="center" className="w-48 max-h-60 overflow-y-auto">
+                                <DropdownMenuItem onClick={() => setFilterColor("all")}>Hepsi</DropdownMenuItem>
+                                {presetColors.map(c => (
+                                  <DropdownMenuItem key={c.value} onClick={() => setFilterColor(c.value)} className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: c.value }} /> {c.name}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableHead>
                         <TableHead className="font-semibold text-center w-[15%]">{t("filament.table.price")}</TableHead>
-                        <TableHead className="font-semibold text-center w-[20%]">{t("filament.table.available")}</TableHead>
-                        <TableHead className="w-[10%] px-6 text-right"></TableHead>
+                        <TableHead className="font-semibold text-center w-[20%]">
+                          <div className="flex items-center justify-center gap-1">
+                            {t("filament.table.available")}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-muted/30">
+                                  <Filter className={cn("h-3 w-3", filterStock !== "all" && "text-primary fill-primary")} />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="center" className="w-40">
+                                <DropdownMenuItem onClick={() => setFilterStock("all")}>Hepsi</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterStock("low")}>Kritik (%20 altı)</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterStock("high")}>Yeterli (%20 üstü)</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableHead>
+                        <TableHead className="w-[10%] px-6 text-right">
+                          {(filterCategory !== "all" || filterColor !== "all" || filterStock !== "all") && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                              onClick={() => {
+                                setFilterCategory("all")
+                                setFilterColor("all")
+                                setFilterStock("all")
+                              }}
+                              title="Filtreleri Temizle"
+                            >
+                              <FilterX className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filaments.length === 0 ? (
+                      {filteredFilaments.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
                             <div className="flex flex-col items-center gap-2 opacity-50">
@@ -660,7 +738,7 @@ export default function FilamentPage() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filaments.map((filament) => (
+                        filteredFilaments.map((filament) => (
                           <TableRow key={filament.ID} className="hover:bg-muted/5 transition-colors border-muted/10 h-16">
                             <TableCell className="font-medium text-foreground/90 px-6">
                               {filament.Name || "-"}
@@ -715,7 +793,7 @@ export default function FilamentPage() {
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem 
                                     onClick={() => handleDeleteFilament(filament.ID)}
-                                    className="text-destructive focus:text-destructive focus:bg-destructive/10 bg-destructive/5"
+                                    className="text-white bg-destructive hover:bg-destructive/90 focus:bg-destructive/90 focus:text-white"
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     {t("filament.actions.delete")}

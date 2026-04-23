@@ -65,5 +65,40 @@
     },
     "delete_confirm": "Bu filamenti silmek istediğinize emin misiniz?",
     "no_category": "Henüz kategori eklenmemiş."
+  },
+  "models": {
+    "categories": "Model Kategorileri",
+    "categories_desc": "Figür, Araç, Dekorasyon gibi kategoriler ekleyin.",
+    "add_category_placeholder": "Örn: Figür",
+    "new_record": "Model Ekle",
+    "new_record_desc": "Yeni 3D modeli kütüphanenize kaydedin.",
+    "name": "Model İsmi",
+    "name_placeholder": "Model İsmi (Örn: Iron Man Büst)",
+    "category": "Kategori",
+    "select_category": "Kategori Seçin...",
+    "search_category": "Kategori ara...",
+    "category_not_found": "Kategori bulunamadı.",
+    "link": "Model Linki",
+    "link_placeholder": "Thingiverse, Printables vb. linki",
+    "gram": "Gramaj (gr)",
+    "gram_placeholder": "Tahmini ağırlık",
+    "save": "Modeli Kaydet",
+    "saving": "Kaydediliyor...",
+    "library": "Model Kütüphanesi",
+    "library_desc": "Kaydedilmiş 3D modelleriniz.",
+    "total": "Toplam Model",
+    "table": {
+      "name": "Model",
+      "category": "Kategori",
+      "link": "Bağlantı",
+      "gram": "Ağırlık",
+      "no_data": "Henüz model eklenmemiş."
+    },
+    "edit_dialog": {
+      "title": "Modeli Düzenle",
+      "desc": "Model bilgilerini güncelleyin.",
+      "save": "Değişiklikleri Kaydet"
+    },
+    "no_category": "Henüz kategori eklenmemiş."
   }
 }
