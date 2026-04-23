@@ -31,6 +31,21 @@ app.post("/api/categories", (req, res) => {
   }
 })
 
+app.delete("/api/categories/:id", (req, res) => {
+  const { id } = req.params
+  try {
+    // Check if category is used by any filament
+    const usage = db.prepare("SELECT COUNT(*) as count FROM Filament_TB WHERE CategoryID = ?").get(id) as { count: number }
+    if (usage.count > 0) {
+      return res.status(400).json({ error: "Category is in use and cannot be deleted" })
+    }
+    db.prepare("DELETE FROM Category_TB WHERE ID = ?").run(id)
+    res.json({ message: "Category deleted successfully" })
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete category" })
+  }
+})
+
 // Filament Endpoints
 app.get("/api/filaments", (req, res) => {
   const filaments = db.prepare(`
@@ -42,25 +57,36 @@ app.get("/api/filaments", (req, res) => {
 })
 
 app.post("/api/filaments", (req, res) => {
-  const { categoryId, color, price, gram, purchaseDate } = req.body
+  const { categoryId, name, color, price, gram, purchaseDate } = req.body
   
   // Available_Gram starts as Gram
   const available_gram = gram
   
   const info = db.prepare(`
-    INSERT INTO Filament_TB (CategoryID, Color, Price, Gram, Available_Gram, PurchaseDate) 
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(categoryId, color, price, gram, available_gram, purchaseDate)
+    INSERT INTO Filament_TB (CategoryID, Name, Color, Price, Gram, Available_Gram, PurchaseDate) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(categoryId, name, color, price, gram, available_gram, purchaseDate)
   
   res.status(201).json({ 
     ID: info.lastInsertRowid, 
     CategoryID: categoryId,
+    Name: name,
     Color: color, 
     Price: price, 
     Gram: gram, 
     Available_Gram: available_gram,
     PurchaseDate: purchaseDate
   })
+})
+
+app.delete("/api/filaments/:id", (req, res) => {
+  const { id } = req.params
+  try {
+    db.prepare("DELETE FROM Filament_TB WHERE ID = ?").run(id)
+    res.json({ message: "Filament deleted successfully" })
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete filament" })
+  }
 })
 
 app.listen(PORT, () => {

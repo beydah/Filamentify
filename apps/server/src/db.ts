@@ -18,6 +18,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS Filament_TB (
     ID INTEGER PRIMARY KEY AUTOINCREMENT,
     CategoryID INTEGER,
+    Name TEXT,
     Color TEXT NOT NULL,
     Price REAL NOT NULL,
     Gram INTEGER NOT NULL,
@@ -28,6 +29,15 @@ db.exec(`
     Score INTEGER DEFAULT 0,
     FOREIGN KEY (CategoryID) REFERENCES Category_TB(ID)
   );
+
+  -- Ensure Name column exists if table was created before
+  PRAGMA table_info(Filament_TB);
 `)
+
+// Add Name column if it doesn't exist
+const tableInfo = db.prepare("PRAGMA table_info(Filament_TB)").all() as any[]
+if (!tableInfo.find(col => col.name === "Name")) {
+  db.exec("ALTER TABLE Filament_TB ADD COLUMN Name TEXT")
+}
 
 export default db
