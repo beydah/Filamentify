@@ -136,7 +136,12 @@ export default function FilamentPage() {
   // Filter State
   const [filterCategory, setFilterCategory] = React.useState<string>("all")
   const [filterColor, setFilterColor] = React.useState<string>("all")
-  const [filterStock, setFilterStock] = React.useState<string>("all") // all, low, high
+  const [filterStock, setFilterStock] = React.useState<string>("all") // all, 250, 500, 750
+
+  const uniqueColors = React.useMemo(() => {
+    const colors = filaments.map(f => f.Color)
+    return Array.from(new Set(colors))
+  }, [filaments])
 
   // Edit State
   const [editingFilament, setEditingFilament] = React.useState<Filament | null>(null)
@@ -330,8 +335,9 @@ export default function FilamentPage() {
   const filteredFilaments = filaments.filter(f => {
     if (filterCategory !== "all" && f.CategoryName !== filterCategory) return false
     if (filterColor !== "all" && f.Color !== filterColor) return false
-    if (filterStock === "low" && (f.Available_Gram / f.Gram) >= 0.2) return false
-    if (filterStock === "high" && (f.Available_Gram / f.Gram) < 0.2) return false
+    if (filterStock === "250" && f.Available_Gram >= 250) return false
+    if (filterStock === "500" && f.Available_Gram >= 500) return false
+    if (filterStock === "750" && f.Available_Gram >= 750) return false
     return true
   })
 
@@ -694,9 +700,10 @@ export default function FilamentPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="center" className="w-48 max-h-60 overflow-y-auto">
                                 <DropdownMenuItem onClick={() => setFilterColor("all")}>{t("common.all")}</DropdownMenuItem>
-                                {presetColors.map(c => (
-                                  <DropdownMenuItem key={c.value} onClick={() => setFilterColor(c.value)} className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: c.value }} /> {c.name}
+                                {uniqueColors.map(color => (
+                                  <DropdownMenuItem key={color} onClick={() => setFilterColor(color)} className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full border shadow-sm" style={{ backgroundColor: color }} /> 
+                                    <span className="text-[10px] text-muted-foreground uppercase">{color}</span>
                                   </DropdownMenuItem>
                                 ))}
                               </DropdownMenuContent>
@@ -715,8 +722,9 @@ export default function FilamentPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="center" className="w-40">
                                 <DropdownMenuItem onClick={() => setFilterStock("all")}>{t("common.all")}</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setFilterStock("low")}>{t("filament.table.filter_low")}</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setFilterStock("high")}>{t("filament.table.filter_high")}</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterStock("250")}>&lt; 250g</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterStock("500")}>&lt; 500g</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterStock("750")}>&lt; 750g</DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -769,7 +777,7 @@ export default function FilamentPage() {
                                 />
                               </div>
                             </TableCell>
-                            <TableCell className="font-mono text-center font-bold">
+                            <TableCell className="text-center font-bold">
                               {filament.Price}
                             </TableCell>
                             <TableCell>

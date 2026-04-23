@@ -18,6 +18,7 @@ import {
   Palette,
   Cpu,
   ClipboardList,
+  Layers,
 } from "lucide-react"
 
 import {
@@ -54,6 +55,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       title: t("nav.products"),
       url: "/admin/products",
       icon: ShoppingBag,
+    },
+    {
+      title: t("nav.materials"),
+      url: "/admin/materials",
+      icon: Layers,
     },
     {
       title: t("nav.models"),

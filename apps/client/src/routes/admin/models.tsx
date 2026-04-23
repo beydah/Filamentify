@@ -14,11 +14,12 @@ import {
   X,
   Check,
   ChevronsUpDown,
+  FileUp,
+  Filter,
+  FilterX,
   Box,
-  Upload,
   FileText,
-  Eye,
-  FileUp
+  Eye
 } from "lucide-react"
 import { Canvas } from "@react-three/fiber"
 import { OrbitControls, Stage, Gltf, Center, useHelper } from "@react-three/drei"
@@ -190,6 +191,13 @@ export default function ModelsPage() {
   const [openCategory, setOpenCategory] = React.useState(false)
   const [isDragging, setIsDragging] = React.useState(false)
   const [isDraggingEdit, setIsDraggingEdit] = React.useState(false)
+
+  const [filterCategory, setFilterCategory] = React.useState<string>("all")
+
+  const filteredModels = models.filter(m => {
+    if (filterCategory !== "all" && m.CategoryName !== filterCategory) return false
+    return true
+  })
 
   const isFormValid = formData.name && formData.categoryId && formData.gram && formData.pieceCount
 
@@ -666,15 +674,44 @@ export default function ModelsPage() {
                   <TableHeader className="bg-muted/10">
                   <TableRow className="hover:bg-transparent border-muted/20">
                     <TableHead className="font-semibold px-6 w-[20%]">{t("models.table.name")}</TableHead>
-                    <TableHead className="font-semibold text-center w-[25%]">{t("models.table.category")}</TableHead>
+                    <TableHead className="font-semibold text-center w-[25%]">
+                      <div className="flex items-center justify-center gap-1">
+                        {t("models.table.category")}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-muted/30">
+                              <Filter className={cn("h-3 w-3", filterCategory !== "all" && "text-primary fill-primary")} />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="center" className="w-40">
+                            <DropdownMenuItem onClick={() => setFilterCategory("all")}>{t("common.all")}</DropdownMenuItem>
+                            {categories.map(c => (
+                              <DropdownMenuItem key={c.ID} onClick={() => setFilterCategory(c.Name)}>{c.Name}</DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableHead>
                     <TableHead className="font-semibold text-center w-[10%]">{t("models.table.gram")}</TableHead>
                     <TableHead className="font-semibold text-center w-[10%]">{t("models.table.piece_count")}</TableHead>
                     <TableHead className="font-semibold text-center w-[25%]">{t("models.table.link")}</TableHead>
-                    <TableHead className="w-[10%] px-6 text-right"></TableHead>
+                    <TableHead className="w-[10%] px-6 text-right">
+                      {filterCategory !== "all" && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                          onClick={() => setFilterCategory("all")}
+                          title="Filtreleri Temizle"
+                        >
+                          <FilterX className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {models.length === 0 ? (
+                  {filteredModels.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="h-48 text-center text-muted-foreground opacity-50">
                         <Search className="h-12 w-12 mx-auto mb-2" />
@@ -682,7 +719,7 @@ export default function ModelsPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    models.map((model) => (
+                    filteredModels.map((model) => (
                       <TableRow key={model.ID} className="hover:bg-muted/5 transition-colors border-muted/10 h-16">
                         <TableCell className="font-medium px-6">{model.Name}</TableCell>
                         <TableCell className="text-center">

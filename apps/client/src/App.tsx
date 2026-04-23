@@ -38,6 +38,7 @@ import PostsPage from "@/routes/admin/posts"
 import AppearancePage from "@/routes/admin/appearance"
 import MachinesPage from "@/routes/admin/machines"
 import FormsPage from "@/routes/admin/forms"
+import MaterialsPage from "@/routes/admin/materials"
 
 function Breadcrumbs() {
   const location = useLocation()
@@ -50,6 +51,7 @@ function Breadcrumbs() {
     models: "Modeller",
     orders: "Siparişler",
     customers: "Müşteriler",
+    materials: "Malzemeler",
     members: "Üyeler",
     account: "Hesabım",
     settings: "Ayarlar",
@@ -112,6 +114,7 @@ function AppContent() {
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/admin/dashboard" element={<DashboardPage />} />
           <Route path="/admin/filament" element={<FilamentPage />} />
+          <Route path="/admin/materials" element={<MaterialsPage />} />
           <Route path="/admin/models" element={<ModelsPage />} />
           <Route path="/admin/orders" element={<OrdersPage />} />
           <Route path="/admin/customers" element={<CustomersPage />} />
