@@ -250,6 +250,75 @@ app.delete("/api/models/:id", (req, res) => {
   }
 })
 
+// Material Category Endpoints
+app.get("/api/material-categories", (req, res) => {
+  const categories = db.prepare("SELECT * FROM MaterialCategory_TB").all()
+  res.json(categories)
+})
+
+app.post("/api/material-categories", (req, res) => {
+  const { name } = req.body
+  try {
+    const info = db.prepare("INSERT INTO MaterialCategory_TB (Name) VALUES (?)").run(name)
+    res.status(201).json({ ID: info.lastInsertRowid, Name: name })
+  } catch (error) {
+    res.status(400).json({ error: "Material category already exists or invalid data" })
+  }
+})
+
+app.delete("/api/material-categories/:id", (req, res) => {
+  const { id } = req.params
+  try {
+    const usage = db.prepare("SELECT COUNT(*) as count FROM Material_TB WHERE CategoryID = ?").get(id) as { count: number }
+    if (usage.count > 0) {
+      return res.status(400).json({ error: "Category is in use and cannot be deleted" })
+    }
+    db.prepare("DELETE FROM MaterialCategory_TB WHERE ID = ?").run(id)
+    res.json({ message: "Material category deleted successfully" })
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete material category" })
+  }
+})
+
+// Material Endpoints
+app.get("/api/materials", (req, res) => {
+  const materials = db.prepare(`
+    SELECT m.*, c.Name as CategoryName 
+    FROM Material_TB m
+    LEFT JOIN MaterialCategory_TB c ON m.CategoryID = c.ID
+  `).all()
+  res.json(materials)
+})
+
+app.post("/api/materials", (req, res) => {
+  const { categoryId, name, quantity, totalPrice, link } = req.body
+  if (!categoryId || !name || quantity < 0) {
+    return res.status(400).json({ error: "Invalid material data" })
+  }
+  const info = db.prepare(`
+    INSERT INTO Material_TB (CategoryID, Name, Quantity, TotalPrice, Link) 
+    VALUES (?, ?, ?, ?, ?)
+  `).run(categoryId, name, quantity, totalPrice, link)
+  res.status(201).json({ 
+    ID: info.lastInsertRowid, 
+    CategoryID: categoryId,
+    Name: name,
+    Quantity: quantity,
+    TotalPrice: totalPrice,
+    Link: link
+  })
+})
+
+app.delete("/api/materials/:id", (req, res) => {
+  const { id } = req.params
+  try {
+    db.prepare("DELETE FROM Material_TB WHERE ID = ?").run(id)
+    res.json({ message: "Material deleted successfully" })
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete material" })
+  }
+})
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`)
 })

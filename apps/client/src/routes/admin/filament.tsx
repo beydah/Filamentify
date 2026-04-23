@@ -221,11 +221,11 @@ export default function FilamentPage() {
         method: "DELETE",
       })
       if (response.ok) {
-        toast.success(t("filament.notifications.cat_deleted"))
+        toast.success(t("common.notifications.cat_deleted"))
         fetchData()
       } else {
         const error = await response.json()
-        toast.error(error.error || t("filament.notifications.cat_delete_error"))
+        toast.error(error.error || t("common.notifications.cat_delete_error"))
       }
     } catch (error) {
       console.error("Failed to delete category:", error)
@@ -240,10 +240,10 @@ export default function FilamentPage() {
         method: "DELETE",
       })
       if (response.ok) {
-        toast.success(t("filament.notifications.deleted"))
+        toast.success(t("common.notifications.deleted"))
         fetchData()
       } else {
-        toast.error(t("filament.notifications.delete_error"))
+        toast.error(t("common.notifications.delete_error"))
       }
     } catch (error) {
       console.error("Failed to delete filament:", error)
@@ -273,7 +273,7 @@ export default function FilamentPage() {
       })
 
       if (response.ok) {
-        toast.success(t("filament.notifications.added"))
+        toast.success(t("common.notifications.added"))
         setFormData({
           categoryId: "",
           name: "",
@@ -335,9 +335,10 @@ export default function FilamentPage() {
   const filteredFilaments = filaments.filter(f => {
     if (filterCategory !== "all" && f.CategoryName !== filterCategory) return false
     if (filterColor !== "all" && f.Color !== filterColor) return false
-    if (filterStock === "250" && f.Available_Gram >= 250) return false
-    if (filterStock === "500" && f.Available_Gram >= 500) return false
-    if (filterStock === "750" && f.Available_Gram >= 750) return false
+    if (filterStock === "bitti" && f.Available_Gram > 0) return false
+    if (filterStock === "az" && (f.Available_Gram <= 0 || f.Available_Gram > 250)) return false
+    if (filterStock === "orta" && (f.Available_Gram <= 250 || f.Available_Gram > 500)) return false
+    if (filterStock === "dolu" && f.Available_Gram <= 500) return false
     return true
   })
 
@@ -413,6 +414,21 @@ export default function FilamentPage() {
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-[200px] p-0" align="start">
+                            <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("filament.category")}</span>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6 p-0 text-primary hover:bg-primary/10"
+                                onClick={() => {
+                                  setOpenCategory(false)
+                                  document.getElementById('category-management')?.scrollIntoView({ behavior: 'smooth' })
+                                }}
+                                title={t("filament.add_category_placeholder")}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
                             <Command>
                               <CommandInput placeholder={t("filament.search_category")} />
                               <CommandList className="max-h-[200px] overflow-y-auto scrollbar-none">
@@ -580,7 +596,7 @@ export default function FilamentPage() {
           </Card>
 
           {/* Category Management */}
-          <Card className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
+          <Card id="category-management" className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
             <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
               <div className="space-y-1.5">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -700,12 +716,20 @@ export default function FilamentPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="center" className="w-48 max-h-60 overflow-y-auto">
                                 <DropdownMenuItem onClick={() => setFilterColor("all")}>{t("common.all")}</DropdownMenuItem>
-                                {uniqueColors.map(color => (
-                                  <DropdownMenuItem key={color} onClick={() => setFilterColor(color)} className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full border shadow-sm" style={{ backgroundColor: color }} /> 
-                                    <span className="text-[10px] text-muted-foreground uppercase">{color}</span>
-                                  </DropdownMenuItem>
-                                ))}
+                                <div className="p-2 flex flex-wrap gap-2 justify-center">
+                                  {uniqueColors.slice(0, 5).map(color => (
+                                    <button 
+                                      key={color} 
+                                      onClick={() => { setFilterColor(color); setOpenColorFilter(false); }}
+                                      className={cn(
+                                        "w-6 h-6 rounded-full border-2 transition-all hover:scale-110 shadow-sm",
+                                        filterColor === color ? "border-primary ring-2 ring-primary/20" : "border-muted"
+                                      )}
+                                      style={{ backgroundColor: color }}
+                                      title={color}
+                                    />
+                                  ))}
+                                </div>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -722,9 +746,10 @@ export default function FilamentPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="center" className="w-40">
                                 <DropdownMenuItem onClick={() => setFilterStock("all")}>{t("common.all")}</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setFilterStock("250")}>&lt; 250g</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setFilterStock("500")}>&lt; 500g</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setFilterStock("750")}>&lt; 750g</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterStock("bitti")}>Bitti</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterStock("az")}>Az</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterStock("orta")}>Orta</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterStock("dolu")}>Dolu</DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>

@@ -251,11 +251,11 @@ export default function ModelsPage() {
         method: "DELETE",
       })
       if (response.ok) {
-        toast.success(t("models.notifications.cat_deleted"))
+        toast.success(t("common.notifications.cat_deleted"))
         fetchData()
       } else {
         const error = await response.json()
-        toast.error(error.error || t("models.notifications.cat_delete_error"))
+        toast.error(error.error || t("common.notifications.cat_delete_error"))
       }
     } catch (error) {
       console.error("Failed to delete category:", error)
@@ -270,10 +270,10 @@ export default function ModelsPage() {
         method: "DELETE",
       })
       if (response.ok) {
-        toast.success(t("models.notifications.deleted"))
+        toast.success(t("common.notifications.deleted"))
         fetchData()
       } else {
-        toast.error(t("models.notifications.delete_error"))
+        toast.error(t("common.notifications.delete_error"))
       }
     } catch (error) {
       console.error("Failed to delete model:", error)
@@ -303,7 +303,7 @@ export default function ModelsPage() {
       })
 
       if (response.ok) {
-        toast.success(t("models.notifications.added"))
+        toast.success(t("common.notifications.added"))
         setFormData({
           categoryId: "",
           name: "",
@@ -436,6 +436,21 @@ export default function ModelsPage() {
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[200px] p-0" align="start">
+                          <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("models.category")}</span>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 p-0 text-primary hover:bg-primary/10"
+                              onClick={() => {
+                                setOpenCategory(false)
+                                document.getElementById('category-management')?.scrollIntoView({ behavior: 'smooth' })
+                              }}
+                              title={t("models.add_category_placeholder")}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
                           <Command>
                             <CommandInput placeholder={t("models.search_category")} />
                             <CommandList className="max-h-[200px] overflow-y-auto scrollbar-none">
@@ -586,7 +601,7 @@ export default function ModelsPage() {
             </div>
           </Card>
 
-          <Card className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
+          <Card id="category-management" className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
             <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
               <div className="space-y-1.5">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -936,13 +951,17 @@ export default function ModelsPage() {
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.details.weight")}</p>
-                <p className="text-sm font-medium">{detailModel?.Gram?.toFixed(2)}g / {detailModel?.PieceCount} Parça</p>
+                <p className="text-sm font-medium">{detailModel?.Gram?.toFixed(2)}g</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.table.piece_count")}</p>
+                <p className="text-sm font-medium">{(detailModel?.PieceCount || 1)} Parça</p>
               </div>
               <div className="col-span-2 space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.link")}</p>
                 {detailModel?.Link ? (
                   <a href={detailModel.Link} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
-                    {detailModel.Link} <ExternalLink className="h-3 w-3" />
+                    Link <ExternalLink className="h-3 w-3" />
                   </a>
                 ) : <p className="text-sm text-muted-foreground italic">{t("models.details.no_link")}</p>}
               </div>

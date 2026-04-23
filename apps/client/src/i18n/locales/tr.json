@@ -97,7 +97,6 @@
       "added": "Filament başarıyla eklendi",
       "deleted": "Filament silindi",
       "delete_error": "Filament silinemedi",
-      "cat_deleted": "Kategori silindi",
       "cat_delete_error": "Kategori silinemedi"
     }
   },
@@ -150,12 +149,28 @@
       "no_file": "Dosya bulunamadı",
       "format_error": "Model dosyası görüntülenemiyor"
     },
-    "notifications": {
-      "added": "Model başarıyla eklendi",
-      "deleted": "Model silindi",
-      "delete_error": "Model silinemedi",
-      "cat_deleted": "Kategori silindi",
-      "cat_delete_error": "Kategori silinemedi"
+    }
+  },
+    "materials": {
+      "name": "Malzeme Adı",
+      "name_placeholder": "Malzeme adını giriniz",
+      "new_record_desc": "Yeni malzeme ve stok kaydı oluşturun.",
+      "category": "Kategori",
+      "quantity": "Adet",
+      "total_price": "Toplam Fiyat",
+      "link": "Bağlantı",
+      "save": "Malzemeyi Kaydet",
+      "categories": "Malzeme Kategorileri",
+      "categories_desc": "Malzemelerinizi kategorize edin.",
+      "inventory": "Malzeme Listesi",
+      "inventory_desc": "Kayıtlı tüm malzemelerin listesi.",
+      "table": {
+        "unit_price": "Adet Fiyat",
+        "current": "Mevcut",
+        "no_data": "Henüz malzeme eklenmemiş."
+      },
+      "add_category_placeholder": "Kategori adı"
+    }
     }
   }
 }

@@ -14,7 +14,14 @@
     "all": "All",
     "inspect": "Inspect",
     "close": "Close",
-    "details": "Detail"
+    "details": "Detail",
+    "notifications": {
+      "added": "Added successfully",
+      "deleted": "Deleted",
+      "delete_error": "Failed to delete",
+      "cat_deleted": "Category deleted",
+      "cat_delete_error": "Failed to delete category"
+    }
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -67,9 +74,7 @@
       "price": "Price",
       "available": "Available",
       "purchase_date": "Purchase Date",
-      "no_data": "No filaments added yet.",
-      "filter_low": "Critical (below 20%)",
-      "filter_high": "Sufficient (above 20%)"
+      "no_data": "No filaments added yet."
     },
     "actions": {
       "title": "Actions",
@@ -92,13 +97,6 @@
       "color": "Color",
       "price": "Price",
       "purchase_date": "Purchase Date"
-    },
-    "notifications": {
-      "added": "Filament added successfully",
-      "deleted": "Filament deleted",
-      "delete_error": "Failed to delete filament",
-      "cat_deleted": "Category deleted",
-      "cat_delete_error": "Failed to delete category"
     }
   },
   "models": {
@@ -149,13 +147,26 @@
       "no_link": "No link",
       "no_file": "File not found",
       "format_error": "Model file cannot be displayed"
-    },
-    "notifications": {
-      "added": "Model added successfully",
-      "deleted": "Model deleted",
-      "delete_error": "Failed to delete model",
-      "cat_deleted": "Category deleted",
-      "cat_delete_error": "Failed to delete category"
     }
+  },
+  "materials": {
+    "name": "Material Name",
+    "name_placeholder": "Enter material name",
+    "new_record_desc": "Create a new material and stock record.",
+    "category": "Category",
+    "quantity": "Quantity",
+    "total_price": "Total Price",
+    "link": "Link",
+    "save": "Save Material",
+    "categories": "Material Categories",
+    "categories_desc": "Categorize your materials.",
+    "inventory": "Material List",
+    "inventory_desc": "List of all registered materials.",
+    "table": {
+      "unit_price": "Unit Price",
+      "current": "Current",
+      "no_data": "No materials added yet."
+    },
+    "add_category_placeholder": "Category name"
   }
 }
