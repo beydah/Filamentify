@@ -42,6 +42,10 @@ app.get("/", (req, res) => {
   res.json({ message: "Welcome to Filamentify API" })
 })
 
+app.get("/api/ping", (req, res) => {
+  res.json({ status: "ok", time: Date.now() })
+})
+
 // Category Endpoints
 app.get("/api/categories", (req, res) => {
   const categories = db.prepare("SELECT * FROM Category_TB").all()
