@@ -116,6 +116,8 @@
     "link_placeholder": "Thingiverse, Printables, etc. link",
     "gram": "Weight (gr)",
     "gram_placeholder": "Estimated weight",
+    "piece_count": "Piece Count",
+    "piece_count_placeholder": "Number of pieces",
     "save": "Save Model",
     "saving": "Saving...",
     "library": "Model Library",
@@ -126,6 +128,7 @@
       "category": "Category",
       "link": "Link",
       "gram": "Weight",
+      "piece_count": "Pieces",
       "no_data": "No models added yet."
     },
     "edit_dialog": {

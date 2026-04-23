@@ -56,24 +56,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       icon: ShoppingBag,
     },
     {
-      title: t("nav.filament"),
-      url: "/admin/filament",
-      icon: Box,
-    },
-    {
       title: t("nav.models"),
       url: "/admin/models",
       icon: Package,
     },
     {
+      title: t("nav.filament"),
+      url: "/admin/filament",
+      icon: Box,
+    },
+    {
       title: t("nav.posts"),
       url: "/admin/posts",
       icon: FileText,
-    },
-    {
-      title: t("nav.forms"),
-      url: "/admin/forms",
-      icon: ClipboardList,
     },
     {
       title: t("nav.media"),
@@ -84,6 +79,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       title: t("nav.customers"),
       url: "/admin/customers",
       icon: Users,
+    },
+    {
+      title: t("nav.forms"),
+      url: "/admin/forms",
+      icon: ClipboardList,
     },
   ]
 

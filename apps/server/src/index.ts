@@ -30,10 +30,10 @@ const upload = multer({
   storage: storage,
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase()
-    if (ext === ".stl" || ext === ".3mf") {
+    if (ext === ".stl") {
       cb(null, true)
     } else {
-      cb(new Error("Only .stl and .3mf files are allowed"))
+      cb(new Error("Only .stl files are allowed"))
     }
   }
 })
@@ -183,29 +183,30 @@ app.get("/api/models", (req, res) => {
 })
 
 app.post("/api/models", upload.single("file"), (req, res) => {
-  const { categoryId, name, link, gram } = req.body
+  const { categoryId, name, link, gram, pieceCount } = req.body
   const filePath = req.file ? req.file.path.replace(/\\/g, "/") : null
 
   if (!categoryId || !name || gram < 0) {
     return res.status(400).json({ error: "Invalid model data" })
   }
   const info = db.prepare(`
-    INSERT INTO Model_TB (CategoryID, Name, Link, Gram, FilePath) 
-    VALUES (?, ?, ?, ?, ?)
-  `).run(categoryId, name, link, gram, filePath)
+    INSERT INTO Model_TB (CategoryID, Name, Link, Gram, PieceCount, FilePath) 
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(categoryId, name, link, gram, pieceCount || 1, filePath)
   res.status(201).json({ 
     ID: info.lastInsertRowid, 
     CategoryID: categoryId,
     Name: name,
     Link: link,
     Gram: gram,
+    PieceCount: pieceCount || 1,
     FilePath: filePath
   })
 })
 
 app.patch("/api/models/:id", upload.single("file"), (req, res) => {
   const { id } = req.params
-  const { name, categoryId, link, gram } = req.body
+  const { name, categoryId, link, gram, pieceCount } = req.body
   const newFilePath = req.file ? req.file.path.replace(/\\/g, "/") : null
 
   try {
@@ -217,15 +218,15 @@ app.patch("/api/models/:id", upload.single("file"), (req, res) => {
       }
       db.prepare(`
         UPDATE Model_TB 
-        SET Name = ?, CategoryID = ?, Link = ?, Gram = ?, FilePath = ?
+        SET Name = ?, CategoryID = ?, Link = ?, Gram = ?, PieceCount = ?, FilePath = ?
         WHERE ID = ?
-      `).run(name, categoryId, link, gram, newFilePath, id)
+      `).run(name, categoryId, link, gram, pieceCount, newFilePath, id)
     } else {
       db.prepare(`
         UPDATE Model_TB 
-        SET Name = ?, CategoryID = ?, Link = ? , Gram = ?
+        SET Name = ?, CategoryID = ?, Link = ? , Gram = ?, PieceCount = ?
         WHERE ID = ?
-      `).run(name, categoryId, link, gram, id)
+      `).run(name, categoryId, link, gram, pieceCount, id)
     }
     res.json({ message: "Model updated successfully" })
   } catch (error) {

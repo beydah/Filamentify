@@ -42,6 +42,7 @@ db.exec(`
     Link TEXT,
     Gram REAL NOT NULL,
     FilePath TEXT,
+    PieceCount INTEGER DEFAULT 1,
     PurchaseDate DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (CategoryID) REFERENCES ModelCategory_TB(ID)
   );
@@ -64,6 +65,10 @@ if (!filamentInfo.find(col => col.name === "Name")) {
 const modelInfo = db.prepare("PRAGMA table_info(Model_TB)").all() as TableColumn[]
 if (!modelInfo.find(col => col.name === "FilePath")) {
   db.exec("ALTER TABLE Model_TB ADD COLUMN FilePath TEXT")
+}
+
+if (!modelInfo.find(col => col.name === "PieceCount")) {
+  db.exec("ALTER TABLE Model_TB ADD COLUMN PieceCount INTEGER DEFAULT 1")
 }
 
 export default db

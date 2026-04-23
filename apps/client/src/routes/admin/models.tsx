@@ -88,6 +88,7 @@ interface Model {
   Name: string
   Link: string
   Gram: number
+  PieceCount: number
   FilePath?: string
 }
 
@@ -106,9 +107,8 @@ function ModelViewer({ filePath }: { filePath?: string }) {
   
   const url = `http://localhost:3001/${filePath}`
   const isSTL = filePath.toLowerCase().endsWith('.stl')
-  const is3MF = filePath.toLowerCase().endsWith('.3mf')
 
-  if (!isSTL && !is3MF) {
+  if (!isSTL) {
     return <div className="flex h-full items-center justify-center text-muted-foreground font-medium italic">
       {t("models.details.format_error", { format: filePath.split('.').pop() })}
     </div>
@@ -167,6 +167,8 @@ export default function ModelsPage() {
     categoryId: "",
     link: "",
     gram: "",
+    pieceCount: "",
+    file: null as File | null
   })
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false)
   const [updating, setUpdating] = React.useState(false)
@@ -175,8 +177,10 @@ export default function ModelsPage() {
   const [newCategory, setNewCategory] = React.useState("")
   const [formData, setFormData] = React.useState({
     name: "",
+    categoryId: "",
     link: "",
-    gram: "0",
+    gram: "5.00",
+    pieceCount: "1",
     file: null as File | null
   })
 
@@ -276,6 +280,7 @@ export default function ModelsPage() {
       data.append("name", toTitleCase(formData.name))
       data.append("link", formData.link)
       data.append("gram", formData.gram)
+      data.append("pieceCount", formData.pieceCount)
       if (formData.file) {
         data.append("file", formData.file)
       }
@@ -291,7 +296,8 @@ export default function ModelsPage() {
           categoryId: "",
           name: "",
           link: "",
-          gram: "0",
+          gram: "5.00",
+          pieceCount: "1",
           file: null,
         })
         fetchData()
@@ -310,6 +316,8 @@ export default function ModelsPage() {
       categoryId: model.CategoryID.toString(),
       link: model.Link || "",
       gram: model.Gram.toString(),
+      pieceCount: model.PieceCount.toString(),
+      file: null
     })
     setUpdateSuccess(false)
     setIsEditDialogOpen(true)
@@ -454,16 +462,32 @@ export default function ModelsPage() {
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.gram")}</Label>
-                      <Input
-                        type="number"
-                        placeholder={t("models.gram_placeholder")}
-                        value={formData.gram}
-                        onChange={(e) => setFormData({ ...formData, gram: e.target.value })}
-                        required
-                        className="bg-background/40 border-muted/30 transition-all"
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.gram")}</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder={t("models.gram_placeholder")}
+                          value={formData.gram}
+                          onChange={(e) => setFormData({ ...formData, gram: e.target.value })}
+                          required
+                          className="bg-background/40 border-muted/30 transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.piece_count")}</Label>
+                        <Input
+                          type="number"
+                          step="1"
+                          placeholder={t("models.piece_count_placeholder")}
+                          value={formData.pieceCount}
+                          onChange={(e) => setFormData({ ...formData, pieceCount: e.target.value })}
+                          required
+                          className="bg-background/40 border-muted/30 transition-all"
+                        />
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -478,7 +502,7 @@ export default function ModelsPage() {
                           e.preventDefault();
                           e.stopPropagation();
                           const file = e.dataTransfer.files?.[0];
-                          if (file && (file.name.endsWith('.stl') || file.name.endsWith('.3mf'))) {
+                          if (file && file.name.endsWith('.stl')) {
                             setFormData({ ...formData, file });
                           }
                         }}
@@ -488,7 +512,7 @@ export default function ModelsPage() {
                           id="model-file-input"
                           type="file" 
                           className="hidden" 
-                          accept=".stl,.3mf"
+                          accept=".stl"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) setFormData({ ...formData, file });
@@ -515,7 +539,7 @@ export default function ModelsPage() {
                             <FileUp className="h-8 w-8 text-muted-foreground/50" />
                             <div className="text-center">
                               <p className="text-xs font-medium">{t("models.drag_drop")}</p>
-                              <p className="text-[10px] text-muted-foreground">{t("models.only_stl_3mf")}</p>
+                              <p className="text-[10px] text-muted-foreground">Sadece .stl</p>
                             </div>
                           </>
                         )}
@@ -632,17 +656,18 @@ export default function ModelsPage() {
                 <Table>
                   <TableHeader className="bg-muted/10">
                   <TableRow className="hover:bg-transparent border-muted/20">
-                    <TableHead className="font-semibold px-6 w-[35%]">{t("models.table.name")}</TableHead>
-                    <TableHead className="font-semibold text-center w-[25%]">{t("models.table.category")}</TableHead>
+                    <TableHead className="font-semibold px-6 w-[25%]">{t("models.table.name")}</TableHead>
+                    <TableHead className="font-semibold text-center w-[15%]">{t("models.table.category")}</TableHead>
                     <TableHead className="font-semibold text-center w-[15%]">{t("models.table.gram")}</TableHead>
-                    <TableHead className="font-semibold text-center w-[15%]">{t("models.table.link")}</TableHead>
+                    <TableHead className="font-semibold text-center w-[15%]">{t("models.table.piece_count")}</TableHead>
+                    <TableHead className="font-semibold text-center w-[20%]">{t("models.table.link")}</TableHead>
                     <TableHead className="w-[10%] px-6 text-right"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {models.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-48 text-center text-muted-foreground opacity-50">
+                      <TableCell colSpan={6} className="h-48 text-center text-muted-foreground opacity-50">
                         <Search className="h-12 w-12 mx-auto mb-2" />
                         <p>{t("models.table.no_data")}</p>
                       </TableCell>
@@ -656,7 +681,8 @@ export default function ModelsPage() {
                             {model.CategoryName}
                           </span>
                         </TableCell>
-                        <TableCell className="text-center font-mono font-bold">{model.Gram}g</TableCell>
+                        <TableCell className="text-center font-mono font-bold">{model.Gram.toFixed(2)}g</TableCell>
+                        <TableCell className="text-center font-mono">{model.PieceCount}x</TableCell>
                         <TableCell className="text-center">
                           {model.Link ? (
                             <a href={model.Link} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
@@ -758,14 +784,60 @@ export default function ModelsPage() {
                   onChange={(e) => setEditFormData({ ...editFormData, link: e.target.value })}
                 />
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">{t("models.gram")}</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editFormData.gram}
+                    onChange={(e) => setEditFormData({ ...editFormData, gram: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">{t("models.piece_count")}</Label>
+                  <Input
+                    type="number"
+                    step="1"
+                    value={editFormData.pieceCount}
+                    onChange={(e) => setEditFormData({ ...editFormData, pieceCount: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label className="text-xs font-semibold">{t("models.gram")}</Label>
-                <Input
-                  type="number"
-                  value={editFormData.gram}
-                  onChange={(e) => setEditFormData({ ...editFormData, gram: e.target.value })}
-                  required
-                />
+                <Label className="text-xs font-semibold">{t("models.file_upload")} (Değiştir)</Label>
+                <div 
+                  className={cn(
+                    "border-2 border-dashed rounded-lg p-3 transition-all duration-200 flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-muted/30",
+                    editFormData.file ? "border-primary/50 bg-primary/5" : "border-muted/30"
+                  )}
+                  onClick={() => document.getElementById('edit-model-file-input')?.click()}
+                >
+                  <input 
+                    id="edit-model-file-input"
+                    type="file" 
+                    className="hidden" 
+                    accept=".stl"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setEditFormData({ ...editFormData, file });
+                    }}
+                  />
+                  {editFormData.file ? (
+                    <>
+                      <FileText className="h-6 w-6 text-primary" />
+                      <p className="text-[10px] font-medium truncate max-w-[150px]">{editFormData.file.name}</p>
+                    </>
+                  ) : (
+                    <>
+                      <FileUp className="h-6 w-6 text-muted-foreground/50" />
+                      <p className="text-[10px] text-muted-foreground">Tıkla ve değiştir (.stl)</p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             <DialogFooter className="gap-2 sm:gap-0">
@@ -805,7 +877,7 @@ export default function ModelsPage() {
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.details.weight")}</p>
-                <p className="text-sm font-medium">{detailModel?.Gram}g</p>
+                <p className="text-sm font-medium">{detailModel?.Gram?.toFixed(2)}g / {detailModel?.PieceCount} Parça</p>
               </div>
               <div className="col-span-2 space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.link")}</p>

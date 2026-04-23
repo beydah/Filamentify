@@ -116,6 +116,8 @@
     "link_placeholder": "Thingiverse, Printables vb. linki",
     "gram": "Gramaj (gr)",
     "gram_placeholder": "Tahmini ağırlık",
+    "piece_count": "Parça Sayısı",
+    "piece_count_placeholder": "Parça sayısı",
     "save": "Modeli Kaydet",
     "saving": "Kaydediliyor...",
     "library": "Model Kütüphanesi",
@@ -126,6 +128,7 @@
       "category": "Kategori",
       "link": "Bağlantı",
       "gram": "Ağırlık",
+      "piece_count": "Parça",
       "no_data": "Henüz model eklenmemiş."
     },
     "edit_dialog": {
