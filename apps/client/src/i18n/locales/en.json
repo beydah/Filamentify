@@ -137,9 +137,9 @@
       "save": "Save Changes"
     },
     "no_category": "No categories added yet.",
-    "file_upload": "Model File (.STL, .3MF)",
-    "drag_drop": "Click or drag & drop",
-    "only_stl_3mf": "Only .stl and .3mf",
+    "file_upload": "Model File (.STL)",
+    "drag_drop": "Click or drag and drop",
+    "only_stl_3mf": "Only .stl",
     "details": {
       "title": "Model Details",
       "desc": "Model details and 3D preview",
@@ -147,7 +147,7 @@
       "weight": "Weight",
       "no_link": "No link",
       "no_file": "File not found",
-      "format_error": "This file format ({{format}}) is not viewable yet"
+      "format_error": "Model file cannot be displayed"
     },
     "notifications": {
       "added": "Model added successfully",

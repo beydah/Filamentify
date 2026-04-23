@@ -137,9 +137,9 @@
       "save": "Değişiklikleri Kaydet"
     },
     "no_category": "Henüz kategori eklenmemiş.",
-    "file_upload": "Model Dosyası (.STL, .3MF)",
+    "file_upload": "Model Dosyası (.STL)",
     "drag_drop": "Tıkla veya sürükle bırak",
-    "only_stl_3mf": "Sadece .stl ve .3mf",
+    "only_stl_3mf": "Sadece .stl",
     "details": {
       "title": "Model Detayları",
       "desc": "Model detayları ve 3D önizleme",
@@ -147,7 +147,7 @@
       "weight": "Ağırlık",
       "no_link": "Link yok",
       "no_file": "Dosya bulunamadı",
-      "format_error": "Bu dosya formatı ({{format}}) şu an görüntülenemiyor"
+      "format_error": "Model dosyası görüntülenemiyor"
     },
     "notifications": {
       "added": "Model başarıyla eklendi",

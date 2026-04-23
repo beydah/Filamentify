@@ -188,6 +188,10 @@ export default function ModelsPage() {
   const [isDetailOpen, setIsDetailOpen] = React.useState(false)
 
   const [openCategory, setOpenCategory] = React.useState(false)
+  const [isDragging, setIsDragging] = React.useState(false)
+  const [isDraggingEdit, setIsDraggingEdit] = React.useState(false)
+
+  const isFormValid = formData.name && formData.categoryId && formData.gram && formData.pieceCount
 
   const fetchData = React.useCallback(async () => {
     try {
@@ -312,11 +316,11 @@ export default function ModelsPage() {
   const handleEditClick = (model: Model) => {
     setEditingModel(model)
     setEditFormData({
-      name: model.Name,
-      categoryId: model.CategoryID.toString(),
+      name: model.Name || "",
+      categoryId: (model.CategoryID || "").toString(),
       link: model.Link || "",
-      gram: model.Gram.toString(),
-      pieceCount: model.PieceCount.toString(),
+      gram: (model.Gram || 0).toString(),
+      pieceCount: (model.PieceCount || 1).toString(),
       file: null
     })
     setUpdateSuccess(false)
@@ -328,15 +332,19 @@ export default function ModelsPage() {
     if (!editingModel) return
     setUpdating(true)
     try {
+      const data = new FormData()
+      data.append("name", toTitleCase(editFormData.name))
+      data.append("categoryId", editFormData.categoryId)
+      data.append("link", editFormData.link)
+      data.append("gram", editFormData.gram)
+      data.append("pieceCount", editFormData.pieceCount)
+      if (editFormData.file) {
+        data.append("file", editFormData.file)
+      }
+
       const response = await fetch(`http://localhost:3001/api/models/${editingModel.ID}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: toTitleCase(editFormData.name),
-          categoryId: parseInt(editFormData.categoryId),
-          link: editFormData.link,
-          gram: parseInt(editFormData.gram),
-        }),
+        body: data,
       })
       if (response.ok) {
         setUpdateSuccess(true)
@@ -352,8 +360,6 @@ export default function ModelsPage() {
       setUpdating(false)
     }
   }
-
-  const isFormValid = formData.name && formData.categoryId && formData.gram
 
   return (
     <div className="flex flex-1 flex-col gap-8 p-6 pt-2">
@@ -452,16 +458,6 @@ export default function ModelsPage() {
                       </Popover>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.link")}</Label>
-                      <Input
-                        placeholder={t("models.link_placeholder")}
-                        value={formData.link}
-                        onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                        className="bg-background/40 border-muted/30 transition-all"
-                      />
-                    </div>
-
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.gram")}</Label>
@@ -491,16 +487,29 @@ export default function ModelsPage() {
                     </div>
 
                     <div className="space-y-2">
+                      <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.link")}</Label>
+                      <Input
+                        placeholder={t("models.link_placeholder")}
+                        value={formData.link}
+                        onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                        className="bg-background/40 border-muted/30 transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
                       <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.file_upload")}</Label>
                       <div 
                         className={cn(
-                          "border-2 border-dashed rounded-lg p-4 transition-all duration-200 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-muted/30",
-                          formData.file ? "border-primary/50 bg-primary/5" : "border-muted/30"
+                          "border-2 border-dashed rounded-lg p-4 transition-all duration-200 flex flex-col items-center justify-center gap-2 cursor-pointer",
+                          formData.file ? "border-primary/50 bg-primary/5" : "border-muted/30",
+                          isDragging && "border-primary bg-primary/10 scale-[1.02]"
                         )}
-                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                        onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
                         onDrop={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
+                          setIsDragging(false);
                           const file = e.dataTransfer.files?.[0];
                           if (file && file.name.endsWith('.stl')) {
                             setFormData({ ...formData, file });
@@ -536,9 +545,9 @@ export default function ModelsPage() {
                           </>
                         ) : (
                           <>
-                            <FileUp className="h-8 w-8 text-muted-foreground/50" />
+                            <FileUp className={cn("h-8 w-8 transition-colors", isDragging ? "text-primary" : "text-muted-foreground/50")} />
                             <div className="text-center">
-                              <p className="text-xs font-medium">{t("models.drag_drop")}</p>
+                              <p className="text-xs font-medium">{isDragging ? "Buraya Bırakın" : t("models.drag_drop")}</p>
                               <p className="text-[10px] text-muted-foreground">Sadece .stl</p>
                             </div>
                           </>
@@ -657,10 +666,10 @@ export default function ModelsPage() {
                   <TableHeader className="bg-muted/10">
                   <TableRow className="hover:bg-transparent border-muted/20">
                     <TableHead className="font-semibold px-6 w-[25%]">{t("models.table.name")}</TableHead>
-                    <TableHead className="font-semibold text-center w-[15%]">{t("models.table.category")}</TableHead>
-                    <TableHead className="font-semibold text-center w-[15%]">{t("models.table.gram")}</TableHead>
-                    <TableHead className="font-semibold text-center w-[15%]">{t("models.table.piece_count")}</TableHead>
-                    <TableHead className="font-semibold text-center w-[20%]">{t("models.table.link")}</TableHead>
+                    <TableHead className="font-semibold text-center w-[20%]">{t("models.table.category")}</TableHead>
+                    <TableHead className="font-semibold text-center w-[10%]">{t("models.table.gram")}</TableHead>
+                    <TableHead className="font-semibold text-center w-[10%]">{t("models.table.piece_count")}</TableHead>
+                    <TableHead className="font-semibold text-center w-[25%]">{t("models.table.link")}</TableHead>
                     <TableHead className="w-[10%] px-6 text-right"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -777,13 +786,6 @@ export default function ModelsPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold">{t("models.link")}</Label>
-                <Input
-                  value={editFormData.link}
-                  onChange={(e) => setEditFormData({ ...editFormData, link: e.target.value })}
-                />
-              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold">{t("models.gram")}</Label>
@@ -808,12 +810,32 @@ export default function ModelsPage() {
               </div>
 
               <div className="space-y-2">
+                <Label className="text-xs font-semibold">{t("models.link")}</Label>
+                <Input
+                  value={editFormData.link}
+                  onChange={(e) => setEditFormData({ ...editFormData, link: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label className="text-xs font-semibold">{t("models.file_upload")} (Değiştir)</Label>
                 <div 
                   className={cn(
-                    "border-2 border-dashed rounded-lg p-3 transition-all duration-200 flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-muted/30",
-                    editFormData.file ? "border-primary/50 bg-primary/5" : "border-muted/30"
+                    "border-2 border-dashed rounded-lg p-3 transition-all duration-200 flex flex-col items-center justify-center gap-1 cursor-pointer",
+                    editFormData.file ? "border-primary/50 bg-primary/5" : "border-muted/30",
+                    isDraggingEdit && "border-primary bg-primary/10 scale-[1.02]"
                   )}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingEdit(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingEdit(false); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDraggingEdit(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file && file.name.endsWith('.stl')) {
+                      setEditFormData({ ...editFormData, file });
+                    }
+                  }}
                   onClick={() => document.getElementById('edit-model-file-input')?.click()}
                 >
                   <input 
@@ -833,8 +855,8 @@ export default function ModelsPage() {
                     </>
                   ) : (
                     <>
-                      <FileUp className="h-6 w-6 text-muted-foreground/50" />
-                      <p className="text-[10px] text-muted-foreground">Tıkla ve değiştir (.stl)</p>
+                      <FileUp className={cn("h-6 w-6 transition-colors", isDraggingEdit ? "text-primary" : "text-muted-foreground/50")} />
+                      <p className="text-[10px] text-muted-foreground">{isDraggingEdit ? "Buraya Bırakın" : "Tıkla ve değiştir (.stl)"}</p>
                     </>
                   )}
                 </div>

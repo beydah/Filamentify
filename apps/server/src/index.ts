@@ -220,13 +220,13 @@ app.patch("/api/models/:id", upload.single("file"), (req, res) => {
         UPDATE Model_TB 
         SET Name = ?, CategoryID = ?, Link = ?, Gram = ?, PieceCount = ?, FilePath = ?
         WHERE ID = ?
-      `).run(name, categoryId, link, gram, pieceCount, newFilePath, id)
+      `).run(name, categoryId, link, gram, pieceCount || 1, newFilePath, id)
     } else {
       db.prepare(`
         UPDATE Model_TB 
         SET Name = ?, CategoryID = ?, Link = ? , Gram = ?, PieceCount = ?
         WHERE ID = ?
-      `).run(name, categoryId, link, gram, pieceCount, id)
+      `).run(name, categoryId, link, gram, pieceCount || 1, id)
     }
     res.json({ message: "Model updated successfully" })
   } catch (error) {
