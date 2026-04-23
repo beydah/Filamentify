@@ -18,13 +18,13 @@
   },
   "app": {
     "name": "Filamentify",
-    "description": "Filament Yönetim Sistemi"
+    "description": "3D Model Yönetim Sistemi"
   },
   "filament": {
     "categories": "Filament Kategorileri",
     "categories_desc": "PLA, ABS, PETG gibi kategoriler ekleyin.",
     "add_category_placeholder": "Örn: PLA Silk",
-    "new_record": "Yeni Filament Kaydı",
+    "new_record": "Filament Ekle",
     "new_record_desc": "Stoktaki yeni filamenti detaylarıyla kaydedin.",
     "name": "İsim",
     "name_placeholder": "Filament İsmi (Örn: Siyah PLA)",
@@ -43,7 +43,7 @@
     "inventory_desc": "Mevcut filament stoklarınızın durumu.",
     "total": "Toplam",
     "table": {
-      "name": "İsim",
+      "name": "Filament",
       "category": "Kategori",
       "color": "Renk",
       "price": "Fiyat",
