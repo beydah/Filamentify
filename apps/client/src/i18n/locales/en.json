@@ -139,7 +139,7 @@
     "no_category": "No categories added yet.",
     "file_upload": "Model File (.STL)",
     "drag_drop": "Click or drag and drop",
-    "only_stl_3mf": "Only .stl",
+    "only_stl": "Only .stl",
     "details": {
       "title": "Model Details",
       "desc": "Model details and 3D preview",

@@ -139,7 +139,7 @@
     "no_category": "Henüz kategori eklenmemiş.",
     "file_upload": "Model Dosyası (.STL)",
     "drag_drop": "Tıkla veya sürükle bırak",
-    "only_stl_3mf": "Sadece .stl",
+    "only_stl": "Sadece .stl",
     "details": {
       "title": "Model Detayları",
       "desc": "Model detayları ve 3D önizleme",

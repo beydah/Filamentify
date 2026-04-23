@@ -548,7 +548,7 @@ export default function ModelsPage() {
                             <FileUp className={cn("h-8 w-8 transition-colors", isDragging ? "text-primary" : "text-muted-foreground/50")} />
                             <div className="text-center">
                               <p className="text-xs font-medium">{isDragging ? "Buraya Bırakın" : t("models.drag_drop")}</p>
-                              <p className="text-[10px] text-muted-foreground">Sadece .stl</p>
+                              <p className="text-[10px] text-muted-foreground">{t("models.only_stl")}</p>
                             </div>
                           </>
                         )}
@@ -665,8 +665,8 @@ export default function ModelsPage() {
                 <Table>
                   <TableHeader className="bg-muted/10">
                   <TableRow className="hover:bg-transparent border-muted/20">
-                    <TableHead className="font-semibold px-6 w-[25%]">{t("models.table.name")}</TableHead>
-                    <TableHead className="font-semibold text-center w-[20%]">{t("models.table.category")}</TableHead>
+                    <TableHead className="font-semibold px-6 w-[20%]">{t("models.table.name")}</TableHead>
+                    <TableHead className="font-semibold text-center w-[25%]">{t("models.table.category")}</TableHead>
                     <TableHead className="font-semibold text-center w-[10%]">{t("models.table.gram")}</TableHead>
                     <TableHead className="font-semibold text-center w-[10%]">{t("models.table.piece_count")}</TableHead>
                     <TableHead className="font-semibold text-center w-[25%]">{t("models.table.link")}</TableHead>
@@ -690,8 +690,8 @@ export default function ModelsPage() {
                             {model.CategoryName}
                           </span>
                         </TableCell>
-                        <TableCell className="text-center font-mono font-bold">{model.Gram.toFixed(2)}g</TableCell>
-                        <TableCell className="text-center font-mono">{model.PieceCount}x</TableCell>
+                        <TableCell className="text-center font-bold">{(model.Gram || 0).toFixed(2)}g</TableCell>
+                        <TableCell className="text-center">{(model.PieceCount || 1)}x</TableCell>
                         <TableCell className="text-center">
                           {model.Link ? (
                             <a href={model.Link} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
@@ -721,7 +721,7 @@ export default function ModelsPage() {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => handleDeleteModel(model.ID)}
-                                className="text-destructive focus:text-destructive focus:bg-destructive/10 bg-destructive/5"
+                                className="text-red-500 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20 cursor-pointer"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 {t("filament.actions.delete")}
