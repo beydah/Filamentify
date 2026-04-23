@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const dbPath = path.resolve(__dirname, "../Filamentify_DB.sqlite")
-const db = new Database(dbPath, { verbose: console.log })
+const db = new Database(dbPath)
 
 // Initialize tables
 db.exec(`

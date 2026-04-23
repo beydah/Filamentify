@@ -14,8 +14,18 @@ import {
   X,
   Check,
   ChevronsUpDown,
-  Box
+  Box,
+  Upload,
+  FileText,
+  Eye,
+  FileUp
 } from "lucide-react"
+import { Canvas } from "@react-three/fiber"
+import { OrbitControls, Stage, Gltf, Center, useHelper } from "@react-three/drei"
+import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js"
+import { useLoader } from "@react-three/fiber"
+import * as THREE from "three"
+import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/ui/controls/button"
@@ -78,10 +88,64 @@ interface Model {
   Name: string
   Link: string
   Gram: number
+  FilePath?: string
+}
+
+function STLModel({ url }: { url: string }) {
+  const geom = useLoader(STLLoader, url)
+  return (
+    <mesh geometry={geom}>
+      <meshStandardMaterial color="#888888" />
+    </mesh>
+  )
+}
+
+function ModelViewer({ filePath }: { filePath?: string }) {
+  const { t } = useTranslation()
+  if (!filePath) return <div className="flex h-full items-center justify-center text-muted-foreground">{t("models.details.no_file")}</div>
+  
+  const url = `http://localhost:3001/${filePath}`
+  const isSTL = filePath.toLowerCase().endsWith('.stl')
+  const is3MF = filePath.toLowerCase().endsWith('.3mf')
+
+  if (!isSTL && !is3MF) {
+    return <div className="flex h-full items-center justify-center text-muted-foreground font-medium italic">
+      {t("models.details.format_error", { format: filePath.split('.').pop() })}
+    </div>
+  }
+
+  return (
+    <div className="h-[300px] w-full rounded-lg border bg-muted/20 relative group overflow-hidden">
+      <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
+        <Stage intensity={0.5} environment="city" adjustCamera={1.5}>
+          <React.Suspense fallback={null}>
+            {isSTL ? (
+              <Center>
+                <STLModel url={url} />
+              </Center>
+            ) : (
+              <Center>
+                <mesh>
+                  <boxGeometry args={[1, 1, 1]} />
+                  <meshStandardMaterial color="orange" />
+                </mesh>
+              </Center>
+            )}
+          </React.Suspense>
+        </Stage>
+        <OrbitControls makeDefault />
+      </Canvas>
+      <div className="absolute bottom-2 right-2 px-2 py-1 bg-background/80 backdrop-blur-sm rounded text-[10px] font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+        {t("models.details.preview")}
+      </div>
+    </div>
+  )
 }
 
 const toTitleCase = (str: string) => {
-  return str.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+  return str.split(' ').map(word => 
+    word.charAt(0).toLocaleUpperCase('tr-TR') + word.slice(1).toLocaleLowerCase('tr-TR')
+  ).join(' ');
 }
 
 export default function ModelsPage() {
@@ -110,11 +174,14 @@ export default function ModelsPage() {
 
   const [newCategory, setNewCategory] = React.useState("")
   const [formData, setFormData] = React.useState({
-    categoryId: "",
     name: "",
     link: "",
     gram: "0",
+    file: null as File | null
   })
+
+  const [detailModel, setDetailModel] = React.useState<Model | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = React.useState(false)
 
   const [openCategory, setOpenCategory] = React.useState(false)
 
@@ -168,10 +235,11 @@ export default function ModelsPage() {
         method: "DELETE",
       })
       if (response.ok) {
+        toast.success(t("models.notifications.cat_deleted"))
         fetchData()
       } else {
         const error = await response.json()
-        alert(error.error || "Kategori silinemedi")
+        toast.error(error.error || t("models.notifications.cat_delete_error"))
       }
     } catch (error) {
       console.error("Failed to delete category:", error)
@@ -186,9 +254,10 @@ export default function ModelsPage() {
         method: "DELETE",
       })
       if (response.ok) {
+        toast.success(t("models.notifications.deleted"))
         fetchData()
       } else {
-        alert("Model silinemedi")
+        toast.error(t("models.notifications.delete_error"))
       }
     } catch (error) {
       console.error("Failed to delete model:", error)
@@ -202,23 +271,28 @@ export default function ModelsPage() {
     }
     setSubmitting(true)
     try {
+      const data = new FormData()
+      data.append("categoryId", formData.categoryId)
+      data.append("name", toTitleCase(formData.name))
+      data.append("link", formData.link)
+      data.append("gram", formData.gram)
+      if (formData.file) {
+        data.append("file", formData.file)
+      }
+
       const response = await fetch("http://localhost:3001/api/models", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          categoryId: parseInt(formData.categoryId),
-          name: toTitleCase(formData.name),
-          link: formData.link,
-          gram: parseInt(formData.gram),
-        }),
+        body: data,
       })
 
       if (response.ok) {
+        toast.success(t("models.notifications.added"))
         setFormData({
           categoryId: "",
           name: "",
           link: "",
           gram: "0",
+          file: null,
         })
         fetchData()
       }
@@ -392,6 +466,62 @@ export default function ModelsPage() {
                       />
                     </div>
 
+                    <div className="space-y-2">
+                      <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.file_upload")}</Label>
+                      <div 
+                        className={cn(
+                          "border-2 border-dashed rounded-lg p-4 transition-all duration-200 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-muted/30",
+                          formData.file ? "border-primary/50 bg-primary/5" : "border-muted/30"
+                        )}
+                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const file = e.dataTransfer.files?.[0];
+                          if (file && (file.name.endsWith('.stl') || file.name.endsWith('.3mf'))) {
+                            setFormData({ ...formData, file });
+                          }
+                        }}
+                        onClick={() => document.getElementById('model-file-input')?.click()}
+                      >
+                        <input 
+                          id="model-file-input"
+                          type="file" 
+                          className="hidden" 
+                          accept=".stl,.3mf"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) setFormData({ ...formData, file });
+                          }}
+                        />
+                        {formData.file ? (
+                          <>
+                            <FileText className="h-8 w-8 text-primary" />
+                            <div className="text-center">
+                              <p className="text-xs font-medium truncate max-w-[150px]">{formData.file.name}</p>
+                              <p className="text-[10px] text-muted-foreground">{(formData.file.size / 1024).toFixed(1)} KB</p>
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 rounded-full" 
+                              onClick={(e) => { e.stopPropagation(); setFormData({ ...formData, file: null }); }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <FileUp className="h-8 w-8 text-muted-foreground/50" />
+                            <div className="text-center">
+                              <p className="text-xs font-medium">{t("models.drag_drop")}</p>
+                              <p className="text-[10px] text-muted-foreground">{t("models.only_stl_3mf")}</p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
                     <Button 
                       type="submit" 
                       className="w-full shadow-md hover:shadow-lg transition-all" 
@@ -545,6 +675,10 @@ export default function ModelsPage() {
                             <DropdownMenuContent align="end" className="w-40">
                               <DropdownMenuLabel className="text-xs">{t("filament.actions.title")}</DropdownMenuLabel>
                               <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => { setDetailModel(model); setIsDetailOpen(true); }}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                {t("common.details")}
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleEditClick(model)}>
                                 <Edit3 className="mr-2 h-4 w-4" />
                                 {t("filament.actions.edit")}
@@ -636,7 +770,7 @@ export default function ModelsPage() {
             </div>
             <DialogFooter className="gap-2 sm:gap-0">
               <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="flex-1">
-                <X className="mr-2 h-4 w-4" /> Vazgeç
+                <X className="mr-2 h-4 w-4" /> {t("common.cancel")}
               </Button>
               <Button 
                 type="submit" 
@@ -644,10 +778,54 @@ export default function ModelsPage() {
                 disabled={updating || updateSuccess}
               >
                 {updating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : updateSuccess ? <Check className="mr-2 h-4 w-4" /> : <Check className="mr-2 h-4 w-4" />}
-                {updating ? t("models.saving") : updateSuccess ? "Düzenlendi" : t("models.edit_dialog.save")}
+                {updating ? t("models.saving") : updateSuccess ? t("common.updated") : t("models.edit_dialog.save")}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="sm:max-w-[600px] bg-background/95 backdrop-blur-xl border-muted/30">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+              <Box className="h-6 w-6 text-primary" />
+              {detailModel?.Name}
+            </DialogTitle>
+            <DialogDescription>
+              {t("models.details.desc")}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-6 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.category")}</p>
+                <p className="text-sm font-medium">{detailModel?.CategoryName}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.details.weight")}</p>
+                <p className="text-sm font-medium">{detailModel?.Gram}g</p>
+              </div>
+              <div className="col-span-2 space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.link")}</p>
+                {detailModel?.Link ? (
+                  <a href={detailModel.Link} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
+                    {detailModel.Link} <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : <p className="text-sm text-muted-foreground italic">{t("models.details.no_link")}</p>}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.details.preview")}</p>
+              <ModelViewer filePath={detailModel?.FilePath} />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDetailOpen(false)}>{t("common.close")}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

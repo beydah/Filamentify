@@ -12,7 +12,9 @@
     "no_data": "Veri bulunamadı.",
     "select": "Seçiniz...",
     "all": "Hepsi",
-    "inspect": "İncele"
+    "inspect": "İncele",
+    "close": "Kapat",
+    "details": "Detay"
   },
   "nav": {
     "dashboard": "Panel",
@@ -64,7 +66,9 @@
       "price": "Fiyat",
       "available": "Mevcut",
       "purchase_date": "Alım Tarihi",
-      "no_data": "Henüz filament eklenmemiş."
+      "no_data": "Henüz filament eklenmemiş.",
+      "filter_low": "Kritik (%20 altı)",
+      "filter_high": "Yeterli (%20 üstü)"
     },
     "actions": {
       "title": "İşlemler",
@@ -79,7 +83,22 @@
       "save": "Değişiklikleri Kaydet"
     },
     "delete_confirm": "Bu filamenti silmek istediğinize emin misiniz?",
-    "no_category": "Henüz kategori eklenmemiş."
+    "no_category": "Henüz kategori eklenmemiş.",
+    "details": {
+      "title": "Filament Detayları",
+      "desc": "Filament envanter detayları",
+      "status": "Stok Durumu",
+      "color": "Renk",
+      "price": "Fiyat",
+      "purchase_date": "Satın Alım Tarihi"
+    },
+    "notifications": {
+      "added": "Filament başarıyla eklendi",
+      "deleted": "Filament silindi",
+      "delete_error": "Filament silinemedi",
+      "cat_deleted": "Kategori silindi",
+      "cat_delete_error": "Kategori silinemedi"
+    }
   },
   "models": {
     "categories": "Model Kategorileri",
@@ -114,6 +133,25 @@
       "desc": "Model bilgilerini güncelleyin.",
       "save": "Değişiklikleri Kaydet"
     },
-    "no_category": "Henüz kategori eklenmemiş."
+    "no_category": "Henüz kategori eklenmemiş.",
+    "file_upload": "Model Dosyası (.STL, .3MF)",
+    "drag_drop": "Tıkla veya sürükle bırak",
+    "only_stl_3mf": "Sadece .stl ve .3mf",
+    "details": {
+      "title": "Model Detayları",
+      "desc": "Model detayları ve 3D önizleme",
+      "preview": "3D Önizleme",
+      "weight": "Ağırlık",
+      "no_link": "Link yok",
+      "no_file": "Dosya bulunamadı",
+      "format_error": "Bu dosya formatı ({{format}}) şu an görüntülenemiyor"
+    },
+    "notifications": {
+      "added": "Model başarıyla eklendi",
+      "deleted": "Model silindi",
+      "delete_error": "Model silinemedi",
+      "cat_deleted": "Kategori silindi",
+      "cat_delete_error": "Kategori silinemedi"
+    }
   }
 }

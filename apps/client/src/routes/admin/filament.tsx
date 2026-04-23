@@ -17,10 +17,14 @@ import {
   ChevronDown,
   X,
   Filter,
-  FilterX
+  FilterX,
+  Eye,
+  Settings,
+  Database
 } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { tr, enUS } from "date-fns/locale"
+import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/ui/controls/button"
@@ -109,7 +113,9 @@ const presetColors = [
 ]
 
 const toTitleCase = (str: string) => {
-  return str.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+  return str.split(' ').map(word => 
+    word.charAt(0).toLocaleUpperCase('tr-TR') + word.slice(1).toLocaleLowerCase('tr-TR')
+  ).join(' ');
 }
 
 export default function FilamentPage() {
@@ -142,6 +148,9 @@ export default function FilamentPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false)
   const [updating, setUpdating] = React.useState(false)
   const [updateSuccess, setUpdateSuccess] = React.useState(false)
+
+  const [detailFilament, setDetailFilament] = React.useState<Filament | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = React.useState(false)
 
   // Form State
   const [newCategory, setNewCategory] = React.useState("")
@@ -207,10 +216,11 @@ export default function FilamentPage() {
         method: "DELETE",
       })
       if (response.ok) {
+        toast.success(t("filament.notifications.cat_deleted"))
         fetchData()
       } else {
         const error = await response.json()
-        alert(error.error || "Kategori silinemedi")
+        toast.error(error.error || t("filament.notifications.cat_delete_error"))
       }
     } catch (error) {
       console.error("Failed to delete category:", error)
@@ -225,9 +235,10 @@ export default function FilamentPage() {
         method: "DELETE",
       })
       if (response.ok) {
+        toast.success(t("filament.notifications.deleted"))
         fetchData()
       } else {
-        alert("Filament silinemedi")
+        toast.error(t("filament.notifications.delete_error"))
       }
     } catch (error) {
       console.error("Failed to delete filament:", error)
@@ -257,6 +268,7 @@ export default function FilamentPage() {
       })
 
       if (response.ok) {
+        toast.success(t("filament.notifications.added"))
         setFormData({
           categoryId: "",
           name: "",
@@ -301,6 +313,7 @@ export default function FilamentPage() {
       })
       if (response.ok) {
         setUpdateSuccess(true)
+        toast.success(t("common.updated"))
         setTimeout(() => {
           setIsEditDialogOpen(false)
           setUpdateSuccess(false)
@@ -662,7 +675,7 @@ export default function FilamentPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="center" className="w-40">
-                                <DropdownMenuItem onClick={() => setFilterCategory("all")}>Hepsi</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterCategory("all")}>{t("common.all")}</DropdownMenuItem>
                                 {categories.map(c => (
                                   <DropdownMenuItem key={c.ID} onClick={() => setFilterCategory(c.Name)}>{c.Name}</DropdownMenuItem>
                                 ))}
@@ -680,7 +693,7 @@ export default function FilamentPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="center" className="w-48 max-h-60 overflow-y-auto">
-                                <DropdownMenuItem onClick={() => setFilterColor("all")}>Hepsi</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterColor("all")}>{t("common.all")}</DropdownMenuItem>
                                 {presetColors.map(c => (
                                   <DropdownMenuItem key={c.value} onClick={() => setFilterColor(c.value)} className="flex items-center gap-2">
                                     <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: c.value }} /> {c.name}
@@ -701,9 +714,9 @@ export default function FilamentPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="center" className="w-40">
-                                <DropdownMenuItem onClick={() => setFilterStock("all")}>Hepsi</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setFilterStock("low")}>Kritik (%20 altı)</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setFilterStock("high")}>Yeterli (%20 üstü)</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterStock("all")}>{t("common.all")}</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterStock("low")}>{t("filament.table.filter_low")}</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilterStock("high")}>{t("filament.table.filter_high")}</DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -745,7 +758,7 @@ export default function FilamentPage() {
                             </TableCell>
                             <TableCell className="text-muted-foreground text-center">
                               <span className="px-2 py-0.5 rounded-full bg-muted/20 text-[11px]">
-                                {filament.CategoryName || "Belirsiz"}
+                                {filament.CategoryName || t("common.no_data")}
                               </span>
                             </TableCell>
                             <TableCell>
@@ -786,6 +799,10 @@ export default function FilamentPage() {
                                 <DropdownMenuContent align="end" className="w-40">
                                   <DropdownMenuLabel className="text-xs">{t("filament.actions.title")}</DropdownMenuLabel>
                                   <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => { setDetailFilament(filament); setIsDetailOpen(true); }}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    {t("common.details")}
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleEditClick(filament)}>
                                     <Edit3 className="mr-2 h-4 w-4" />
                                     {t("filament.actions.edit")}
@@ -899,7 +916,7 @@ export default function FilamentPage() {
                 disabled={updating || updateSuccess}
               >
                 <X className="mr-2 h-4 w-4" />
-                Vazgeç
+                {t("common.cancel")}
               </Button>
               <Button 
                 type="submit" 
@@ -917,7 +934,7 @@ export default function FilamentPage() {
                 ) : updateSuccess ? (
                   <>
                     <Check className="mr-2 h-4 w-4" />
-                    Düzenlendi
+                    {t("common.updated")}
                   </>
                 ) : (
                   <>
@@ -928,6 +945,65 @@ export default function FilamentPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="sm:max-w-[500px] bg-background/95 backdrop-blur-xl border-muted/30">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+              <Database className="h-6 w-6 text-primary" />
+              {detailFilament?.Name}
+            </DialogTitle>
+            <DialogDescription>
+              {t("filament.details.desc")}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-6 py-4">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("filament.category")}</p>
+                <p className="text-sm font-medium">{detailFilament?.CategoryName}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("filament.details.color")}</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: detailFilament?.Color }} />
+                  <p className="text-sm font-medium">{presetColors.find(c => c.value === detailFilament?.Color)?.name || detailFilament?.Color}</p>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("filament.details.price")}</p>
+                <p className="text-sm font-medium">{detailFilament?.Price} TL</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("filament.details.purchase_date")}</p>
+                <p className="text-sm font-medium">
+                  {detailFilament?.PurchaseDate ? format(parseISO(detailFilament.PurchaseDate), "PPP", { locale: currentLocale }) : "-"}
+                </p>
+              </div>
+              <div className="col-span-2 space-y-3 pt-2">
+                <div className="flex justify-between items-end">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("filament.details.status")}</p>
+                  <p className="text-xs font-bold text-primary">{detailFilament?.Available_Gram}g / {detailFilament?.Gram}g</p>
+                </div>
+                <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden border border-muted/20">
+                  <div 
+                    className={cn(
+                      "h-full rounded-full transition-all duration-1000",
+                      detailFilament && (detailFilament.Available_Gram / detailFilament.Gram) < 0.2 ? 'bg-destructive' : 'bg-primary'
+                    )}
+                    style={{ width: `${detailFilament ? (detailFilament.Available_Gram / detailFilament.Gram) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDetailOpen(false)}>{t("common.close")}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

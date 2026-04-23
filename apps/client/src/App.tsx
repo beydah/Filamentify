@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
+import * as React from "react"
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { AppSidebar } from "@/ui/templates/app-sidebar"
 import { ThemeProvider } from "@/ui/providers/theme-provider"
 import { ModeToggle } from "@/ui/components/mode-toggle"
@@ -19,6 +20,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/ui/controls/sidebar"
+import { Toaster } from "@/ui/controls/sonner"
 
 // Admin Routes
 import DashboardPage from "@/routes/admin/dashboard"
@@ -37,8 +39,59 @@ import AppearancePage from "@/routes/admin/appearance"
 import MachinesPage from "@/routes/admin/machines"
 import FormsPage from "@/routes/admin/forms"
 
-function AppContent() {
+function Breadcrumbs() {
+  const location = useLocation()
+  const pathnames = location.pathname.split("/").filter((x) => x)
+  
+  const routeNames: Record<string, string> = {
+    admin: "Admin",
+    dashboard: "Panel",
+    filament: "Filamentler",
+    models: "Modeller",
+    orders: "Siparişler",
+    customers: "Müşteriler",
+    members: "Üyeler",
+    account: "Hesabım",
+    settings: "Ayarlar",
+    stats: "İstatistikler",
+    products: "Ürünler",
+    media: "Medya",
+    posts: "Yazılar",
+    appearance: "Görünüm",
+    machines: "Makineler",
+    forms: "Formlar"
+  }
 
+  return (
+    <Breadcrumb>
+      <BreadcrumbList>
+        <BreadcrumbItem className="hidden md:block">
+          <BreadcrumbLink href="/admin/dashboard">Filamentify</BreadcrumbLink>
+        </BreadcrumbItem>
+        {pathnames.map((name, index) => {
+          const isLast = index === pathnames.length - 1
+          const href = `/${pathnames.slice(0, index + 1).join("/")}`
+          const displayName = routeNames[name] || name.charAt(0).toUpperCase() + name.slice(1)
+
+          return (
+            <React.Fragment key={href}>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                {isLast ? (
+                  <BreadcrumbPage>{displayName}</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink href={href}>{displayName}</BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+            </React.Fragment>
+          )
+        })}
+      </BreadcrumbList>
+    </Breadcrumb>
+  )
+}
+
+function AppContent() {
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -47,17 +100,7 @@ function AppContent() {
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/admin/dashboard">Filamentify</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Admin</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
+            <Breadcrumbs />
           </div>
           <div className="ml-auto flex items-center gap-2 px-4">
             <LanguageToggle />
@@ -98,6 +141,7 @@ export default function App() {
     >
       <Router>
         <AppContent />
+        <Toaster position="bottom-right" closeButton duration={5000} />
       </Router>
     </ThemeProvider>
   )
