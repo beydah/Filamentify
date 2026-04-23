@@ -1,0 +1,23 @@
+{
+  "nav": {
+    "dashboard": "Panel",
+    "filament": "Filament",
+    "orders": "Siparişler",
+    "customers": "Müşteriler",
+    "models": "Modeller",
+    "account": "Hesap",
+    "members": "Üyeler",
+    "settings": "Ayarlar",
+    "stats": "İstatistikler",
+    "products": "Ürünler",
+    "media": "Ortamlar",
+    "posts": "Yazılar",
+    "appearance": "Görünüm",
+    "machines": "Makineler",
+    "forms": "Formlar"
+  },
+  "app": {
+    "name": "Filamentify",
+    "description": "Filament Yönetim Sistemi"
+  }
+}

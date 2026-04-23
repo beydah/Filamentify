@@ -1,0 +1,23 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "filament": "Filament",
+    "orders": "Orders",
+    "customers": "Customers",
+    "models": "Models",
+    "account": "Account",
+    "members": "Members",
+    "settings": "Settings",
+    "stats": "Statistics",
+    "products": "Products",
+    "media": "Media",
+    "posts": "Posts",
+    "appearance": "Appearance",
+    "machines": "Machines",
+    "forms": "Forms"
+  },
+  "app": {
+    "name": "Filamentify",
+    "description": "Filament Management System"
+  }
+}
