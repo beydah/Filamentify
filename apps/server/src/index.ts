@@ -1,6 +1,9 @@
 import express from "express"
 import cors from "cors"
 import dotenv from "dotenv"
+import path from "path"
+import fs from "fs"
+import multer from "multer"
 import db from "./db.js"
 
 dotenv.config()
@@ -10,6 +13,30 @@ const PORT = process.env.PORT || 3001
 
 app.use(cors())
 app.use(express.json())
+app.use("/uploads", express.static("uploads"))
+
+// Multer Configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/")
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9)
+    cb(null, uniqueSuffix + path.extname(file.originalname))
+  }
+})
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase()
+    if (ext === ".stl" || ext === ".3mf") {
+      cb(null, true)
+    } else {
+      cb(new Error("Only .stl and .3mf files are allowed"))
+    }
+  }
+})
 
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to Filamentify API" })
@@ -155,35 +182,54 @@ app.get("/api/models", (req, res) => {
   res.json(models)
 })
 
-app.post("/api/models", (req, res) => {
+app.post("/api/models", upload.single("file"), (req, res) => {
   const { categoryId, name, link, gram } = req.body
+  const filePath = req.file ? req.file.path.replace(/\\/g, "/") : null
+
   if (!categoryId || !name || gram < 0) {
     return res.status(400).json({ error: "Invalid model data" })
   }
   const info = db.prepare(`
-    INSERT INTO Model_TB (CategoryID, Name, Link, Gram) 
-    VALUES (?, ?, ?, ?)
-  `).run(categoryId, name, link, gram)
+    INSERT INTO Model_TB (CategoryID, Name, Link, Gram, FilePath) 
+    VALUES (?, ?, ?, ?, ?)
+  `).run(categoryId, name, link, gram, filePath)
   res.status(201).json({ 
     ID: info.lastInsertRowid, 
     CategoryID: categoryId,
     Name: name,
     Link: link,
-    Gram: gram
+    Gram: gram,
+    FilePath: filePath
   })
 })
 
-app.patch("/api/models/:id", (req, res) => {
+app.patch("/api/models/:id", upload.single("file"), (req, res) => {
   const { id } = req.params
   const { name, categoryId, link, gram } = req.body
+  const newFilePath = req.file ? req.file.path.replace(/\\/g, "/") : null
+
   try {
-    db.prepare(`
-      UPDATE Model_TB 
-      SET Name = ?, CategoryID = ?, Link = ?, Gram = ?
-      WHERE ID = ?
-    `).run(name, categoryId, link, gram, id)
+    if (newFilePath) {
+      // Delete old file if exists
+      const old = db.prepare("SELECT FilePath FROM Model_TB WHERE ID = ?").get(id) as { FilePath: string | null }
+      if (old && old.FilePath && fs.existsSync(old.FilePath)) {
+        fs.unlinkSync(old.FilePath)
+      }
+      db.prepare(`
+        UPDATE Model_TB 
+        SET Name = ?, CategoryID = ?, Link = ?, Gram = ?, FilePath = ?
+        WHERE ID = ?
+      `).run(name, categoryId, link, gram, newFilePath, id)
+    } else {
+      db.prepare(`
+        UPDATE Model_TB 
+        SET Name = ?, CategoryID = ?, Link = ? , Gram = ?
+        WHERE ID = ?
+      `).run(name, categoryId, link, gram, id)
+    }
     res.json({ message: "Model updated successfully" })
   } catch (error) {
+    console.error(error)
     res.status(500).json({ error: "Failed to update model" })
   }
 })
@@ -191,6 +237,11 @@ app.patch("/api/models/:id", (req, res) => {
 app.delete("/api/models/:id", (req, res) => {
   const { id } = req.params
   try {
+    // Delete file if exists
+    const old = db.prepare("SELECT FilePath FROM Model_TB WHERE ID = ?").get(id) as { FilePath: string | null }
+    if (old && old.FilePath && fs.existsSync(old.FilePath)) {
+      fs.unlinkSync(old.FilePath)
+    }
     db.prepare("DELETE FROM Model_TB WHERE ID = ?").run(id)
     res.json({ message: "Model deleted successfully" })
   } catch (error) {

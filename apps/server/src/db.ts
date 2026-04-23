@@ -40,23 +40,30 @@ db.exec(`
     CategoryID INTEGER,
     Name TEXT NOT NULL,
     Link TEXT,
-    Gram INTEGER NOT NULL,
+    Gram REAL NOT NULL,
+    FilePath TEXT,
     PurchaseDate DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (CategoryID) REFERENCES ModelCategory_TB(ID)
   );
 
   -- Ensure Name column exists if table was created before
   PRAGMA table_info(Filament_TB);
+  PRAGMA table_info(Model_TB);
 `)
 
 interface TableColumn {
   name: string
 }
 
-// Add Name column if it doesn't exist
-const tableInfo = db.prepare("PRAGMA table_info(Filament_TB)").all() as TableColumn[]
-if (!tableInfo.find(col => col.name === "Name")) {
+// Migration checks
+const filamentInfo = db.prepare("PRAGMA table_info(Filament_TB)").all() as TableColumn[]
+if (!filamentInfo.find(col => col.name === "Name")) {
   db.exec("ALTER TABLE Filament_TB ADD COLUMN Name TEXT")
+}
+
+const modelInfo = db.prepare("PRAGMA table_info(Model_TB)").all() as TableColumn[]
+if (!modelInfo.find(col => col.name === "FilePath")) {
+  db.exec("ALTER TABLE Model_TB ADD COLUMN FilePath TEXT")
 }
 
 export default db

@@ -1,4 +1,19 @@
 {
+  "common": {
+    "save": "Kaydet",
+    "cancel": "Vazgeç",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "actions": "İşlemler",
+    "saving": "Kaydediliyor...",
+    "loading": "Yükleniyor...",
+    "updated": "Düzenlendi",
+    "search": "Ara...",
+    "no_data": "Veri bulunamadı.",
+    "select": "Seçiniz...",
+    "all": "Hepsi",
+    "inspect": "İncele"
+  },
   "nav": {
     "dashboard": "Panel",
     "filament": "Filament",

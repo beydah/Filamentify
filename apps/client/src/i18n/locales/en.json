@@ -1,4 +1,19 @@
 {
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "actions": "Actions",
+    "saving": "Saving...",
+    "loading": "Loading...",
+    "updated": "Updated",
+    "search": "Search...",
+    "no_data": "No data found.",
+    "select": "Select...",
+    "all": "All",
+    "inspect": "Inspect"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "filament": "Filament",
