@@ -48,6 +48,7 @@
       "color": "Renk",
       "price": "Fiyat",
       "available": "Mevcut",
+      "purchase_date": "Alım Tarihi",
       "no_data": "Henüz filament eklenmemiş."
     },
     "actions": {
@@ -56,6 +57,11 @@
       "edit": "Düzenle",
       "delete": "Sil",
       "soon": "yakında!"
+    },
+    "edit_dialog": {
+      "title": "Filament Düzenle",
+      "desc": "Filament bilgilerini güncelleyin.",
+      "save": "Değişiklikleri Kaydet"
     },
     "delete_confirm": "Bu filamenti silmek istediğinize emin misiniz?",
     "no_category": "Henüz kategori eklenmemiş."

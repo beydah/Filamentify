@@ -17,7 +17,7 @@ import {
   Eye,
   Edit3
 } from "lucide-react"
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { tr, enUS } from "date-fns/locale"
 
 import { cn } from "@/lib/utils"
@@ -61,6 +61,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface Category {
   ID: number
@@ -82,7 +90,8 @@ interface Filament {
 
 const presetColors = [
   "#000000", "#4b5563", "#ffffff", "#ef4444", "#f97316", 
-  "#f59e0b", "#10b981", "#3b82f6", "#6366f1", "#a855f7"
+  "#f59e0b", "#10b981", "#3b82f6", "#6366f1", "#a855f7",
+  "#ec4899", "#06b6d4", "#8b5cf6", "#7c3aed", "#f43f5e" // Replaced duplicate green with purple
 ]
 
 export default function FilamentPage() {
@@ -95,6 +104,16 @@ export default function FilamentPage() {
   const [submitting, setSubmitting] = React.useState(false)
   const [addingCategory, setAddingCategory] = React.useState(false)
   const [deletingCategoryId, setDeletingCategoryId] = React.useState<number | null>(null)
+  
+  // Edit State
+  const [editingFilament, setEditingFilament] = React.useState<Filament | null>(null)
+  const [editFormData, setEditFormData] = React.useState({
+    price: "",
+    gram: "",
+    purchaseDate: new Date(),
+  })
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false)
+  const [updating, setUpdating] = React.useState(false)
 
   // Form State
   const [newCategory, setNewCategory] = React.useState("")
@@ -102,8 +121,8 @@ export default function FilamentPage() {
     categoryId: "",
     name: "",
     color: presetColors[0],
-    price: "",
-    gram: "1000",
+    price: "500", // Default 500
+    gram: "1000", // Default 1000
     purchaseDate: new Date(),
   })
 
@@ -190,8 +209,7 @@ export default function FilamentPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.categoryId) {
-      alert(t("filament.select_category"))
+    if (!formData.categoryId || !formData.name || !formData.price || !formData.gram) {
       return
     }
     setSubmitting(true)
@@ -205,7 +223,7 @@ export default function FilamentPage() {
           categoryId: parseInt(formData.categoryId),
           name: formData.name,
           color: formData.color,
-          price: parseInt(formData.price), // Integer only as requested
+          price: parseInt(formData.price),
           gram: parseInt(formData.gram),
           purchaseDate: formData.purchaseDate.toISOString(),
         }),
@@ -216,7 +234,7 @@ export default function FilamentPage() {
           categoryId: "",
           name: "",
           color: presetColors[0],
-          price: "",
+          price: "500",
           gram: "1000",
           purchaseDate: new Date(),
         })
@@ -229,6 +247,41 @@ export default function FilamentPage() {
     }
   }
 
+  const handleEditClick = (filament: Filament) => {
+    setEditingFilament(filament)
+    setEditFormData({
+      price: filament.Price.toString(),
+      gram: filament.Gram.toString(),
+      purchaseDate: parseISO(filament.PurchaseDate),
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingFilament) return
+    setUpdating(true)
+    try {
+      const response = await fetch(`http://localhost:3001/api/filaments/${editingFilament.ID}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          price: parseInt(editFormData.price),
+          gram: parseInt(editFormData.gram),
+          purchaseDate: editFormData.purchaseDate.toISOString(),
+        }),
+      })
+      if (response.ok) {
+        setIsEditDialogOpen(false)
+        fetchData()
+      }
+    } catch (error) {
+      console.error("Failed to update filament:", error)
+    } finally {
+      setUpdating(false)
+    }
+  }
+
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
 
   const scroll = (direction: 'left' | 'right') => {
@@ -238,6 +291,8 @@ export default function FilamentPage() {
       scrollContainerRef.current.scrollTo({ left: scrollTo, behavior: 'smooth' })
     }
   }
+
+  const isFormValid = formData.name && formData.categoryId && formData.price && formData.gram
 
   return (
     <div className="flex flex-1 flex-col gap-8 p-6 pt-2">
@@ -406,7 +461,7 @@ export default function FilamentPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+                  <Label className="text-xs tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
                     <CalendarIcon className="h-3 w-3" />
                     {t("filament.purchase_date")}
                   </Label>
@@ -434,7 +489,11 @@ export default function FilamentPage() {
                   </Popover>
                 </div>
 
-                <Button type="submit" className="w-full shadow-md hover:shadow-lg transition-all" disabled={submitting}>
+                <Button 
+                  type="submit" 
+                  className="w-full shadow-md hover:shadow-lg transition-all" 
+                  disabled={submitting || !isFormValid}
+                >
                   {submitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -518,28 +577,29 @@ export default function FilamentPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 overflow-auto">
+            <CardContent className="flex-1 overflow-auto p-0">
               {loading ? (
                 <div className="flex h-64 items-center justify-center">
                   <Loader2 className="h-10 w-10 animate-spin text-primary/60" />
                 </div>
               ) : (
-                <div className="rounded-xl border border-muted/20 bg-background/20 overflow-hidden">
+                <div className="border-t border-muted/20">
                   <Table>
-                    <TableHeader className="bg-muted/20">
+                    <TableHeader className="bg-muted/10">
                       <TableRow className="hover:bg-transparent border-muted/20">
-                        <TableHead className="font-semibold">{t("filament.table.name")}</TableHead>
-                        <TableHead className="font-semibold">{t("filament.table.category")}</TableHead>
+                        <TableHead className="font-semibold px-6">{t("filament.table.name")}</TableHead>
+                        <TableHead className="font-semibold text-center">{t("filament.table.category")}</TableHead>
                         <TableHead className="font-semibold text-center">{t("filament.table.color")}</TableHead>
-                        <TableHead className="font-semibold">{t("filament.table.price")}</TableHead>
-                        <TableHead className="font-semibold">{t("filament.table.available")}</TableHead>
-                        <TableHead className="w-[50px]"></TableHead>
+                        <TableHead className="font-semibold text-center">{t("filament.table.price")}</TableHead>
+                        <TableHead className="font-semibold text-center">{t("filament.table.purchase_date")}</TableHead>
+                        <TableHead className="font-semibold text-center">{t("filament.table.available")}</TableHead>
+                        <TableHead className="w-[80px] px-6 text-right"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filaments.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
+                          <TableCell colSpan={7} className="h-48 text-center text-muted-foreground">
                             <div className="flex flex-col items-center gap-2 opacity-50">
                               <Search className="h-12 w-12" />
                               <p>{t("filament.table.no_data")}</p>
@@ -548,31 +608,40 @@ export default function FilamentPage() {
                         </TableRow>
                       ) : (
                         filaments.map((filament) => (
-                          <TableRow key={filament.ID} className="hover:bg-muted/10 transition-colors border-muted/10">
-                            <TableCell className="font-medium text-foreground/90">
+                          <TableRow key={filament.ID} className="hover:bg-muted/5 transition-colors border-muted/10 h-16">
+                            <TableCell className="font-medium text-foreground/90 px-6">
                               {filament.Name || "-"}
                             </TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {filament.CategoryName || "Belirsiz"}
+                            <TableCell className="text-muted-foreground text-center">
+                              <span className="px-2 py-0.5 rounded-full bg-muted/20 text-[11px]">
+                                {filament.CategoryName || "Belirsiz"}
+                              </span>
                             </TableCell>
-                            <TableCell className="flex justify-center">
-                              <div 
-                                className="w-5 h-5 rounded-full border-2 border-background shadow-md ring-1 ring-muted/20" 
-                                style={{ backgroundColor: filament.Color }} 
-                                title={filament.Color}
-                              />
-                            </TableCell>
-                            <TableCell className="font-medium">{filament.Price}</TableCell>
                             <TableCell>
-                              <div className="flex flex-col gap-1.5 w-full max-w-[120px]">
-                                <div className="flex justify-between text-[10px] font-bold uppercase tracking-tight text-muted-foreground/80">
+                              <div className="flex justify-center">
+                                <div 
+                                  className="w-4 h-4 rounded-full border border-background shadow-sm ring-1 ring-muted/20" 
+                                  style={{ backgroundColor: filament.Color }} 
+                                  title={filament.Color}
+                                />
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-mono text-center font-bold">
+                              {filament.Price}
+                            </TableCell>
+                            <TableCell className="text-center text-xs text-muted-foreground">
+                              {format(parseISO(filament.PurchaseDate), "dd.MM.yyyy")}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col items-center gap-1.5 w-full mx-auto max-w-[100px]">
+                                <div className="flex justify-between w-full text-[9px] font-bold uppercase tracking-tight text-muted-foreground/80">
                                   <span>{filament.Available_Gram}g</span>
                                   <span>{filament.Gram}g</span>
                                 </div>
-                                <div className="h-2 w-full bg-muted/40 rounded-full overflow-hidden shadow-sm">
+                                <div className="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden">
                                   <div 
                                     className={cn(
-                                      "h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(var(--primary),0.5)]",
+                                      "h-full rounded-full transition-all duration-700",
                                       (filament.Available_Gram / filament.Gram) < 0.2 ? 'bg-destructive' : 'bg-primary'
                                     )}
                                     style={{ width: `${(filament.Available_Gram / filament.Gram) * 100}%` }}
@@ -580,22 +649,21 @@ export default function FilamentPage() {
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="px-6 text-right">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                                    <span className="sr-only">Open menu</span>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted/20">
                                     <MoreHorizontal className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>{t("filament.actions.title")}</DropdownMenuLabel>
+                                <DropdownMenuContent align="end" className="w-40">
+                                  <DropdownMenuLabel className="text-xs">{t("filament.actions.title")}</DropdownMenuLabel>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem onClick={() => alert(`${t("filament.actions.detail")} ${t("filament.actions.soon")}`)}>
                                     <Eye className="mr-2 h-4 w-4" />
                                     {t("filament.actions.detail")}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => alert(`${t("filament.actions.edit")} ${t("filament.actions.soon")}`)}>
+                                  <DropdownMenuItem onClick={() => handleEditClick(filament)}>
                                     <Edit3 className="mr-2 h-4 w-4" />
                                     {t("filament.actions.edit")}
                                   </DropdownMenuItem>
@@ -621,6 +689,87 @@ export default function FilamentPage() {
           </Card>
         </div>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{t("filament.edit_dialog.title")}</DialogTitle>
+            <DialogDescription>
+              {t("filament.edit_dialog.desc")}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdate} className="space-y-6 py-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-price" className="text-xs tracking-wider text-muted-foreground font-semibold">{t("filament.price")}</Label>
+                <Input
+                  id="edit-price"
+                  type="number"
+                  step="100"
+                  min="0"
+                  value={editFormData.price}
+                  onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-gram" className="text-xs tracking-wider text-muted-foreground font-semibold">{t("filament.gram")}</Label>
+                <Input
+                  id="edit-gram"
+                  type="number"
+                  step="50"
+                  min="50"
+                  max="5000"
+                  value={editFormData.gram}
+                  onChange={(e) => setEditFormData({ ...editFormData, gram: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+                  <CalendarIcon className="h-3 w-3" />
+                  {t("filament.purchase_date")}
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className="w-full justify-start text-left font-normal h-10"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editFormData.purchaseDate ? format(editFormData.purchaseDate, "PPP", { locale: currentLocale }) : <span>{t("filament.select_date")}</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={editFormData.purchaseDate}
+                      onSelect={(date) => date && setEditFormData({ ...editFormData, purchaseDate: date })}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" className="w-full" disabled={updating}>
+                {updating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t("filament.saving")}
+                  </>
+                ) : (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    {t("filament.edit_dialog.save")}
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

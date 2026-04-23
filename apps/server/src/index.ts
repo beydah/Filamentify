@@ -84,6 +84,27 @@ app.post("/api/filaments", (req, res) => {
   })
 })
 
+app.patch("/api/filaments/:id", (req, res) => {
+  const { id } = req.params
+  const { price, gram, purchaseDate } = req.body
+  try {
+    // Basic validation
+    if (price < 0 || gram < 50 || gram > 5000) {
+      return res.status(400).json({ error: "Invalid filament data" })
+    }
+
+    db.prepare(`
+      UPDATE Filament_TB 
+      SET Price = ?, Gram = ?, PurchaseDate = ?, Available_Gram = ?
+      WHERE ID = ?
+    `).run(price, gram, purchaseDate, gram, id) // Assuming editing gram resets available gram for simplicity or we should adjust proportionally. 
+                                                // User asked to edit gram, usually it means correcting the total.
+    res.json({ message: "Filament updated successfully" })
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update filament" })
+  }
+})
+
 app.delete("/api/filaments/:id", (req, res) => {
   const { id } = req.params
   try {
