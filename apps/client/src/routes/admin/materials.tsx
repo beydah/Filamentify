@@ -80,7 +80,7 @@ interface Material {
 }
 
 const toTitleCase = (str: string) => {
-  return str.split(' ').map(w => w.charAt(0).toLocaleUpperCase('tr-TR') + w.slice(1).toLocaleLowerCase('tr-TR')).join(' ');
+  return str;
 }
 
 export default function MaterialsPage() {
@@ -108,6 +108,7 @@ export default function MaterialsPage() {
   const [isDetailOpen, setIsDetailOpen] = React.useState(false)
   const [isEditOpen, setIsEditOpen] = React.useState(false)
   const [selectedMaterial, setSelectedMaterial] = React.useState<Material | null>(null)
+  const [originalMaterial, setOriginalMaterial] = React.useState<Material | null>(null)
   const [editFormData, setEditFormData] = React.useState({
     name: "",
     categoryId: "",
@@ -234,6 +235,7 @@ export default function MaterialsPage() {
 
   const handleEditClick = (m: Material) => {
     setSelectedMaterial(m)
+    setOriginalMaterial(m)
     setEditFormData({
       name: m.Name,
       categoryId: m.CategoryID.toString(),
@@ -243,6 +245,19 @@ export default function MaterialsPage() {
       purchaseDate: m.PurchaseDate ? new Date(m.PurchaseDate) : new Date()
     })
     setIsEditOpen(true)
+  }
+
+  const isFieldChanged = (field: string, value: any) => {
+    if (!originalMaterial) return false
+    switch (field) {
+      case "name": return value !== originalMaterial.Name
+      case "categoryId": return value !== originalMaterial.CategoryID.toString()
+      case "quantity": return value !== originalMaterial.Quantity.toString()
+      case "totalPrice": return value !== originalMaterial.TotalPrice.toString()
+      case "link": return value !== (originalMaterial.Link || "")
+      case "purchaseDate": return value.toDateString() !== new Date(originalMaterial.PurchaseDate).toDateString()
+      default: return false
+    }
   }
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -407,7 +422,7 @@ export default function MaterialsPage() {
                             value={formData.quantity}
                             onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                             required
-                            className="bg-background/40 border-muted/30 text-center"
+                            className="bg-background/40 border-muted/30 text-left"
                           />
                       </div>
                       <div className="space-y-2">
@@ -420,7 +435,7 @@ export default function MaterialsPage() {
                             value={formData.totalPrice}
                             onChange={(e) => setFormData({ ...formData, totalPrice: e.target.value })}
                             required
-                            className="bg-background/40 border-muted/30 text-center"
+                            className="bg-background/40 border-muted/30 text-left"
                           />
                       </div>
                     </div>
@@ -480,11 +495,11 @@ export default function MaterialsPage() {
           <Card id="category-management" className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
             <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
               <div className="space-y-1.5">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Layers className="h-3.5 w-3.5 text-primary" />
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-primary" />
                   {t("materials.categories")}
                 </CardTitle>
-                <CardDescription className="text-[10px]">
+                <CardDescription>
                   {t("materials.categories_desc")}
                 </CardDescription>
               </div>
@@ -492,9 +507,9 @@ export default function MaterialsPage() {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setIsCatOpen(!isCatOpen)}
-                className="h-7 w-7 p-0"
+                className="h-8 w-8 p-0"
               >
-                {isCatOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {isCatOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </Button>
             </CardHeader>
             <div className={cn(
@@ -502,13 +517,13 @@ export default function MaterialsPage() {
               isCatOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
             )}>
               <div className="overflow-hidden">
-                <CardContent className="pb-4">
+                <CardContent className="pb-6">
                   <form onSubmit={handleAddCategory} className="flex gap-2">
                     <Input
                       placeholder={t("common.add_category")}
                       value={newCategory}
                       onChange={(e) => setNewCategory(e.target.value)}
-                      className="bg-background/40 border-muted/30 h-9 text-xs"
+                      className="bg-background/40 border-muted/30 h-10"
                     />
                     <Button size="icon" type="submit" disabled={addingCategory || !newCategory.trim()}>
                       {addingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
@@ -715,13 +730,14 @@ export default function MaterialsPage() {
                 value={editFormData.name}
                 onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                 required
+                className={cn(isFieldChanged("name", editFormData.name) && "border-yellow-400 ring-1 ring-yellow-400/50")}
               />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-semibold">{t("common.category")}</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between">
+                  <Button variant="outline" className={cn("w-full justify-between", isFieldChanged("categoryId", editFormData.categoryId) && "border-yellow-400 ring-1 ring-yellow-400/50")}>
                     {categories.find(c => c.ID.toString() === editFormData.categoryId)?.Name || t("common.select")}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
@@ -759,7 +775,7 @@ export default function MaterialsPage() {
                   value={editFormData.quantity}
                   onChange={(e) => setEditFormData({ ...editFormData, quantity: e.target.value })}
                   required
-                  className="bg-background/40"
+                  className={cn("bg-background/40 text-left", isFieldChanged("quantity", editFormData.quantity) && "border-yellow-400 ring-1 ring-yellow-400/50")}
                 />
               </div>
               <div className="space-y-2">
@@ -772,7 +788,7 @@ export default function MaterialsPage() {
                   value={editFormData.totalPrice}
                   onChange={(e) => setEditFormData({ ...editFormData, totalPrice: e.target.value })}
                   required
-                  className="bg-background/40"
+                  className={cn("bg-background/40 text-left", isFieldChanged("totalPrice", editFormData.totalPrice) && "border-yellow-400 ring-1 ring-yellow-400/50")}
                 />
               </div>
             </div>
@@ -801,6 +817,7 @@ export default function MaterialsPage() {
               <Input
                 value={editFormData.link}
                 onChange={(e) => setEditFormData({ ...editFormData, link: e.target.value })}
+                className={cn(isFieldChanged("link", editFormData.link) && "border-yellow-400 ring-1 ring-yellow-400/50")}
               />
             </div>
             <DialogFooter>

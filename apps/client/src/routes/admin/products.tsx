@@ -92,10 +92,6 @@ interface Product {
   models: ProductDetail[]
 }
 
-const toTitleCase = (str: string) => {
-  return str.split(' ').map(w => w.charAt(0).toLocaleUpperCase('tr-TR') + w.slice(1).toLocaleLowerCase('tr-TR')).join(' ');
-}
-
 export default function ProductsPage() {
   const { t } = useTranslation()
   const [isFormOpen, setIsFormOpen] = React.useState(true)
@@ -121,11 +117,12 @@ export default function ProductsPage() {
   // Edit State
   const [isEditOpen, setIsEditOpen] = React.useState(false)
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null)
+  const [originalProduct, setOriginalProduct] = React.useState<Product | null>(null)
   const [editFormData, setEditFormData] = React.useState({
     name: "",
     description: "",
-    price: "",
-    stock: "",
+    price: "0",
+    stock: "0",
     profitMultiplier: "1.0",
     imageFront: null as File | null,
     imageBack: null as File | null,
@@ -167,7 +164,7 @@ export default function ProductsPage() {
     setSubmitting(true)
     
     const body = new FormData()
-    body.append("name", toTitleCase(formData.name))
+    body.append("name", formData.name)
     body.append("description", formData.description)
     body.append("price", formData.price)
     body.append("stock", formData.stock)
@@ -210,7 +207,7 @@ export default function ProductsPage() {
     setUpdating(true)
 
     const body = new FormData()
-    body.append("name", toTitleCase(editFormData.name))
+    body.append("name", editFormData.name)
     body.append("description", editFormData.description)
     body.append("price", editFormData.price)
     body.append("stock", editFormData.stock)
@@ -253,6 +250,7 @@ export default function ProductsPage() {
 
   const handleEditClick = (p: Product) => {
     setSelectedProduct(p)
+    setOriginalProduct(p)
     setEditFormData({
       name: p.Name,
       description: p.Description || "",
@@ -265,6 +263,22 @@ export default function ProductsPage() {
       selectedModels: p.models?.map(m => ({ id: m.ID, quantity: m.Quantity })) || []
     })
     setIsEditOpen(true)
+  }
+
+  const isFieldChanged = (field: string, value: any) => {
+    if (!originalProduct) return false
+    switch (field) {
+      case "name": return value !== originalProduct.Name
+      case "description": return value !== (originalProduct.Description || "")
+      case "price": return value !== originalProduct.Price.toString()
+      case "stock": return value !== originalProduct.Stock.toString()
+      case "profitMultiplier": return value !== (originalProduct.ProfitMultiplier?.toString() || "1.0")
+      case "imageFront": return value !== null
+      case "imageBack": return value !== null
+      case "materials": return JSON.stringify(value) !== JSON.stringify(originalProduct.materials?.map(m => ({ id: m.ID, quantity: m.Quantity })) || [])
+      case "models": return JSON.stringify(value) !== JSON.stringify(originalProduct.models?.map(m => ({ id: m.ID, quantity: m.Quantity })) || [])
+      default: return false
+    }
   }
 
   return (
@@ -658,6 +672,7 @@ export default function ProductsPage() {
                 <Input
                   value={editFormData.name}
                   onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  className={cn(isFieldChanged("name", editFormData.name) && "border-yellow-400 ring-1 ring-yellow-400/50")}
                   required
                 />
               </div>
@@ -668,6 +683,7 @@ export default function ProductsPage() {
                   step="0.1"
                   value={editFormData.profitMultiplier}
                   onChange={(e) => setEditFormData({ ...editFormData, profitMultiplier: e.target.value })}
+                  className={cn(isFieldChanged("profitMultiplier", editFormData.profitMultiplier) && "border-yellow-400 ring-1 ring-yellow-400/50")}
                 />
               </div>
             </div>
@@ -677,6 +693,7 @@ export default function ProductsPage() {
               <Input
                 value={editFormData.description}
                 onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                className={cn(isFieldChanged("description", editFormData.description) && "border-yellow-400 ring-1 ring-yellow-400/50")}
               />
             </div>
 
@@ -688,6 +705,7 @@ export default function ProductsPage() {
                   value={editFormData.price}
                   onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })}
                   required
+                  className={cn("text-left", isFieldChanged("price", editFormData.price) && "border-yellow-400 ring-1 ring-yellow-400/50")}
                 />
               </div>
               <div className="space-y-2">
@@ -697,6 +715,7 @@ export default function ProductsPage() {
                   value={editFormData.stock}
                   onChange={(e) => setEditFormData({ ...editFormData, stock: e.target.value })}
                   required
+                  className={cn("text-left", isFieldChanged("stock", editFormData.stock) && "border-yellow-400 ring-1 ring-yellow-400/50")}
                 />
               </div>
             </div>

@@ -145,9 +145,7 @@ function ModelViewer({ filePath }: { filePath?: string }) {
 }
 
 const toTitleCase = (str: string) => {
-  return str.split(' ').map(word => 
-    word.charAt(0).toLocaleUpperCase('tr-TR') + word.slice(1).toLocaleLowerCase('tr-TR')
-  ).join(' ');
+  return str;
 }
 
 export default function ModelsPage() {
@@ -164,6 +162,9 @@ export default function ModelsPage() {
   const [isCategoriesOpen, setIsCategoriesOpen] = React.useState(false)
 
   const [editingModel, setEditingModel] = React.useState<Model | null>(null)
+  const [originalModel, setOriginalModel] = React.useState<Model | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false)
+  const [updateSuccess, setUpdateSuccess] = React.useState(false)
   const [editFormData, setEditFormData] = React.useState({
     name: "",
     categoryId: "",
@@ -172,9 +173,7 @@ export default function ModelsPage() {
     pieceCount: "",
     file: null as File | null
   })
-  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false)
   const [updating, setUpdating] = React.useState(false)
-  const [updateSuccess, setUpdateSuccess] = React.useState(false)
 
   const [newCategory, setNewCategory] = React.useState("")
   const [formData, setFormData] = React.useState({
@@ -233,9 +232,7 @@ export default function ModelsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...editFormData,
-          categoryId: editFormData.categoryId ? parseInt(editFormData.categoryId) : null,
-          name: toTitleCase(editFormData.name)
+          name: toTitleCase(newCategory)
         })
       })
       if (response.ok) {
@@ -332,16 +329,29 @@ export default function ModelsPage() {
 
   const handleEditClick = (model: Model) => {
     setEditingModel(model)
+    setOriginalModel(model)
     setEditFormData({
-      name: model.Name || "",
-      categoryId: (model.CategoryID || "").toString(),
+      name: model.Name,
+      categoryId: model.CategoryID.toString(),
       link: model.Link || "",
-      gram: (model.Gram || 0).toString(),
+      gram: model.Gram.toString(),
       pieceCount: (model.PieceCount || 1).toString(),
       file: null
     })
-    setUpdateSuccess(false)
     setIsEditDialogOpen(true)
+  }
+
+  const isFieldChanged = (field: string, value: any) => {
+    if (!originalModel) return false
+    switch (field) {
+      case "name": return value !== originalModel.Name
+      case "categoryId": return value !== originalModel.CategoryID.toString()
+      case "link": return value !== (originalModel.Link || "")
+      case "gram": return value !== originalModel.Gram.toString()
+      case "pieceCount": return value !== (originalModel.PieceCount || 1).toString()
+      case "file": return value !== null
+      default: return false
+    }
   }
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -590,7 +600,7 @@ export default function ModelsPage() {
 
                     <Button 
                       type="submit" 
-                      className="w-full shadow-md hover:shadow-lg transition-all" 
+                      className="w-full h-10 font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all active:scale-[0.98]" 
                       disabled={submitting || !isFormValid}
                     >
                       {submitting ? (
@@ -815,6 +825,7 @@ export default function ModelsPage() {
                   value={editFormData.name}
                   onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                   required
+                  className={cn(isFieldChanged("name", editFormData.name) && "border-yellow-400 ring-1 ring-yellow-400/50")}
                 />
               </div>
 
@@ -822,7 +833,7 @@ export default function ModelsPage() {
                 <Label className="text-xs font-semibold">{t("models.category")}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between font-normal">
+                    <Button variant="outline" className={cn("w-full justify-between font-normal", isFieldChanged("categoryId", editFormData.categoryId) && "border-yellow-400 ring-1 ring-yellow-400/50")}>
                       {categories.find(c => c.ID.toString() === editFormData.categoryId)?.Name || t("models.select_category")}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -864,6 +875,7 @@ export default function ModelsPage() {
                     value={editFormData.gram}
                     onChange={(e) => setEditFormData({ ...editFormData, gram: e.target.value })}
                     required
+                    className={cn("text-left", isFieldChanged("gram", editFormData.gram) && "border-yellow-400 ring-1 ring-yellow-400/50")}
                   />
                 </div>
                 <div className="space-y-2">
@@ -874,6 +886,7 @@ export default function ModelsPage() {
                     value={editFormData.pieceCount}
                     onChange={(e) => setEditFormData({ ...editFormData, pieceCount: e.target.value })}
                     required
+                    className={cn("text-left", isFieldChanged("pieceCount", editFormData.pieceCount) && "border-yellow-400 ring-1 ring-yellow-400/50")}
                   />
                 </div>
               </div>
@@ -883,15 +896,19 @@ export default function ModelsPage() {
                 <Input
                   value={editFormData.link}
                   onChange={(e) => setEditFormData({ ...editFormData, link: e.target.value })}
+                  className={cn(isFieldChanged("link", editFormData.link) && "border-yellow-400 ring-1 ring-yellow-400/50")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-semibold">{t("models.file_upload")} (Değiştir)</Label>
+                <Label className="text-xs font-semibold">
+                  {t("models.file_upload")} - Değiştir 
+                  {editingModel?.FilePath && <span className="ml-2 text-primary font-normal">(Mevcut dosya korunacak)</span>}
+                </Label>
                 <div 
                   className={cn(
                     "border-2 border-dashed rounded-lg p-3 transition-all duration-200 flex flex-col items-center justify-center gap-1 cursor-pointer",
-                    editFormData.file ? "border-primary/50 bg-primary/5" : "border-muted/30",
+                    (editFormData.file || isFieldChanged("file", editFormData.file)) ? "border-yellow-400 bg-yellow-400/5" : "border-muted/30",
                     isDraggingEdit && "border-primary bg-primary/10 scale-[1.02]"
                   )}
                   onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingEdit(true); }}

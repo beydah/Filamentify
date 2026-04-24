@@ -113,9 +113,7 @@ const presetColors = [
 ]
 
 const toTitleCase = (str: string) => {
-  return str.split(' ').map(word => 
-    word.charAt(0).toLocaleUpperCase('tr-TR') + word.slice(1).toLocaleLowerCase('tr-TR')
-  ).join(' ');
+  return str;
 }
 
 export default function FilamentPage() {
@@ -145,15 +143,18 @@ export default function FilamentPage() {
 
   // Edit State
   const [editingFilament, setEditingFilament] = React.useState<Filament | null>(null)
-  const [editFormData, setEditFormData] = React.useState({
-    price: "",
-    gram: "",
-    categoryId: "",
-    purchaseDate: new Date(),
-  })
+  const [originalFilament, setOriginalFilament] = React.useState<Filament | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false)
   const [updating, setUpdating] = React.useState(false)
   const [updateSuccess, setUpdateSuccess] = React.useState(false)
+  const [editFormData, setEditFormData] = React.useState({
+    name: "",
+    categoryId: "",
+    color: "#ffffff",
+    price: "",
+    gram: "",
+    purchaseDate: new Date(),
+  })
 
   const [detailFilament, setDetailFilament] = React.useState<Filament | null>(null)
   const [isDetailOpen, setIsDetailOpen] = React.useState(false)
@@ -298,14 +299,29 @@ export default function FilamentPage() {
 
   const handleEditClick = (filament: Filament) => {
     setEditingFilament(filament)
+    setOriginalFilament(filament)
     setEditFormData({
+      name: filament.Name || "",
+      categoryId: filament.CategoryID ? filament.CategoryID.toString() : "",
+      color: filament.Color,
       price: filament.Price.toString(),
       gram: filament.Gram.toString(),
-      categoryId: filament.CategoryID.toString(),
-      purchaseDate: parseISO(filament.PurchaseDate),
+      purchaseDate: new Date(filament.PurchaseDate),
     })
-    setUpdateSuccess(false)
     setIsEditDialogOpen(true)
+  }
+
+  const isFieldChanged = (field: string, value: any) => {
+    if (!originalFilament) return false
+    switch (field) {
+      case "name": return value !== (originalFilament.Name || "")
+      case "categoryId": return value !== (originalFilament.CategoryID ? originalFilament.CategoryID.toString() : "")
+      case "color": return value !== originalFilament.Color
+      case "price": return value !== originalFilament.Price.toString()
+      case "gram": return value !== originalFilament.Gram.toString()
+      case "purchaseDate": return value.toDateString() !== new Date(originalFilament.PurchaseDate).toDateString()
+      default: return false
+    }
   }
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -326,11 +342,9 @@ export default function FilamentPage() {
       if (response.ok) {
         setUpdateSuccess(true)
         toast.success(t("common.updated"))
-        setTimeout(() => {
-          setIsEditDialogOpen(false)
-          setUpdateSuccess(false)
-          fetchData()
-        }, 1000)
+        setIsEditDialogOpen(false)
+        setUpdateSuccess(false)
+        fetchData()
       }
     } catch (error) {
       console.error("Failed to update filament:", error)
@@ -897,7 +911,7 @@ export default function FilamentPage() {
                 <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("filament.category")}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between font-normal h-10 bg-background/40">
+                    <Button variant="outline" className={cn("w-full justify-between font-normal", isFieldChanged("categoryId", editFormData.categoryId) && "border-yellow-400 ring-1 ring-yellow-400/50")}>
                       {categories.find(c => c.ID.toString() === editFormData.categoryId)?.Name || t("common.select")}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -936,7 +950,7 @@ export default function FilamentPage() {
                     value={editFormData.price}
                     onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })}
                     required
-                    className="bg-background/40 text-center"
+                    className={cn("bg-background/40 text-left", isFieldChanged("price", editFormData.price) && "border-yellow-400 ring-1 ring-yellow-400/50")}
                   />
                 </div>
                 <div className="space-y-2">
@@ -950,7 +964,7 @@ export default function FilamentPage() {
                     value={editFormData.gram}
                     onChange={(e) => setEditFormData({ ...editFormData, gram: e.target.value })}
                     required
-                    className="bg-background/40 text-center"
+                    className={cn("bg-background/40 text-left", isFieldChanged("gram", editFormData.gram) && "border-yellow-400 ring-1 ring-yellow-400/50")}
                   />
                 </div>
               </div>
