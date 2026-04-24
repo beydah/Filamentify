@@ -1,5 +1,8 @@
 import * as React from "react"
 import { useTranslation } from "react-i18next"
+import { Canvas, useLoader } from "@react-three/fiber"
+import { OrbitControls, Stage, Center } from "@react-three/drei"
+import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js"
 import { 
   Plus, 
   Search, 
@@ -26,11 +29,13 @@ import {
   Upload,
   FileImage
 } from "lucide-react"
-import { Button } from "@/ui/controls/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/controls/card"
+
 import { cn } from "@/lib/utils"
+import { Button } from "@/ui/controls/button"
+import { Card as CardComp, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/controls/card"
 import { Input } from "@/ui/controls/input"
 import { Label } from "@/ui/controls/label"
+import { Checkbox } from "@/ui/controls/checkbox"
 import {
   Table,
   TableBody,
@@ -66,7 +71,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/ui/controls/popover"
-import { Checkbox } from "@/ui/controls/checkbox"
 import { toast } from "sonner"
 import { CategoryCard } from "@/ui/admin/CategoryCard"
 
@@ -78,6 +82,7 @@ interface Material {
 interface Model {
   ID: number
   Name: string
+  FilePath?: string
 }
 
 interface ProductDetail {
@@ -112,6 +117,44 @@ interface Product {
   materials: ProductDetail[]
   models: ProductDetail[]
   filaments: ProductDetail[]
+}
+
+function STLModel({ url }: { url: string }) {
+  const geom = useLoader(STLLoader, url)
+  return (
+    <mesh geometry={geom}>
+      <meshStandardMaterial color="#888888" />
+    </mesh>
+  )
+}
+
+function ModelViewer({ filePath }: { filePath?: string }) {
+  const { t } = useTranslation()
+  if (!filePath) return <div className="flex h-48 items-center justify-center text-muted-foreground bg-muted/5 rounded-lg border border-dashed text-xs italic">{t("models.details.no_file")}</div>
+  
+  const url = `http://localhost:3001/${filePath}`
+  const isSTL = filePath.toLowerCase().endsWith('.stl')
+
+  if (!isSTL) {
+    return <div className="flex h-48 items-center justify-center text-muted-foreground font-medium italic bg-muted/5 rounded-lg border border-dashed text-xs">
+      {t("models.details.format_error", { format: filePath.split('.').pop() })}
+    </div>
+  }
+
+  return (
+    <div className="h-[200px] w-full rounded-xl border bg-muted/20 relative group overflow-hidden shadow-inner">
+      <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
+        <Stage intensity={0.5} environment="city" adjustCamera={1.5}>
+          <React.Suspense fallback={null}>
+            <Center>
+              <STLModel url={url} />
+            </Center>
+          </React.Suspense>
+        </Stage>
+        <OrbitControls makeDefault />
+      </Canvas>
+    </div>
+  )
 }
 
 export default function ProductsPage() {
@@ -151,7 +194,6 @@ export default function ProductsPage() {
   const [isEditOpen, setIsEditOpen] = React.useState(false)
   const [isDetailOpen, setIsDetailOpen] = React.useState(false)
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null)
-  const [originalProduct, setOriginalProduct] = React.useState<Product | null>(null)
   const [editFormData, setEditFormData] = React.useState({
     name: "",
     description: "",
@@ -262,11 +304,7 @@ export default function ProductsPage() {
         fetchData()
       } else {
         const error = await response.json()
-        if (error.error === "Category is in use and cannot be deleted") {
-          toast.error(t("common.notifications.cat_in_use"))
-        } else {
-          toast.error(error.error || t("common.notifications.cat_delete_error"))
-        }
+        toast.error(error.error || t("common.notifications.cat_delete_error"))
       }
     } catch (error) {
       console.error(error)
@@ -311,7 +349,6 @@ export default function ProductsPage() {
 
   const handleEditClick = (p: Product) => {
     setSelectedProduct(p)
-    setOriginalProduct(p)
     setEditFormData({
       name: p.Name,
       description: p.Description || "",
@@ -364,9 +401,6 @@ export default function ProductsPage() {
       setUpdating(false)
     }
   }
-
-  const filamentTotalPercentage = formData.selectedFilaments.reduce((acc, f) => acc + f.quantity, 0)
-  const isFilamentTotalValid = filamentTotalPercentage === 100
 
   // Image Upload Helper
   const ImageUploadField = ({ 
@@ -473,7 +507,7 @@ export default function ProductsPage() {
 
       <div className="grid gap-8 lg:grid-cols-12">
         <div className="lg:col-span-4 space-y-6">
-          <Card className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
+          <CardComp className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
             <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
               <div className="space-y-1.5">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -523,17 +557,6 @@ export default function ProductsPage() {
                             <PopoverContent className="w-[250px] p-0" align="start">
                               <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
                                 <span className="text-[10px] font-bold tracking-wider text-muted-foreground">{t("products.parent_product")}</span>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-6 w-6 p-0 text-primary hover:bg-primary/10"
-                                  onClick={() => {
-                                    setOpenParentSelect(false)
-                                    setIsSubProduct(false)
-                                  }}
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </Button>
                               </div>
                               <Command>
                                 <CommandInput placeholder={t("common.search")} />
@@ -591,10 +614,9 @@ export default function ProductsPage() {
                           />
                         </div>
 
-                        <div className={cn("space-y-3 p-4 rounded-xl bg-muted/20 border transition-colors", !isFilamentTotalValid ? "border-yellow-500/50" : "border-muted/10")}>
+                        <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
                           <Label className="text-xs font-bold tracking-widest flex items-center justify-between">
                             <span className="flex items-center gap-2"><Box className="h-3 w-3 text-primary" />{t("products.select_filaments")}</span>
-                            <span className={cn("text-[10px]", !isFilamentTotalValid ? "text-yellow-500" : "text-muted-foreground")}>{filamentTotalPercentage}%</span>
                           </Label>
                           <Popover>
                             <PopoverTrigger asChild>
@@ -603,23 +625,12 @@ export default function ProductsPage() {
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[200px] p-0">
-                              <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
-                                <span className="text-[10px] font-bold tracking-wider text-muted-foreground">{t("nav.filament")}</span>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-6 w-6 p-0 text-primary hover:bg-primary/10"
-                                  onClick={() => window.location.href = '/admin/filament'}
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </Button>
-                              </div>
                               <Command>
                                 <CommandInput placeholder={t("common.search")} />
                                 <CommandList>
                                   <CommandGroup>
                                     {filaments.map(f => (
-                                      <CommandItem key={f.ID} onSelect={() => setFormData({...formData, selectedFilaments: [...formData.selectedFilaments, {id: f.ID, quantity: formData.selectedFilaments.length === 0 ? 100 : 0}]})}>
+                                      <CommandItem key={f.ID} onSelect={() => setFormData({...formData, selectedFilaments: [...formData.selectedFilaments, {id: f.ID, quantity: 100}]})}>
                                         {f.Name}
                                       </CommandItem>
                                     ))}
@@ -676,20 +687,6 @@ export default function ProductsPage() {
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-[200px] p-0">
-                                <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
-                                  <span className="text-[10px] font-bold tracking-wider text-muted-foreground">{t("common.category")}</span>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-6 w-6 p-0 text-primary hover:bg-primary/10"
-                                    onClick={() => {
-                                      setOpenCategorySelect(false)
-                                      document.getElementById('category-management')?.scrollIntoView({ behavior: 'smooth' })
-                                    }}
-                                  >
-                                    <Plus className="h-3 w-3" />
-                                  </Button>
-                                </div>
                                 <Command>
                                   <CommandInput placeholder={t("common.search")} />
                                   <CommandList>
@@ -722,17 +719,6 @@ export default function ProductsPage() {
                           <Popover>
                             <PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-9 text-xs">{t("products.add_model")}<Plus className="h-3 w-3" /></Button></PopoverTrigger>
                             <PopoverContent className="w-[200px] p-0">
-                              <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
-                                <span className="text-[10px] font-bold tracking-wider text-muted-foreground">{t("nav.models")}</span>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-6 w-6 p-0 text-primary hover:bg-primary/10"
-                                  onClick={() => window.location.href = '/admin/models'}
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </Button>
-                              </div>
                               <Command><CommandInput placeholder={t("common.search")} /><CommandList><CommandGroup>{models.map(m => (<CommandItem key={m.ID} onSelect={() => setFormData({...formData, selectedModels: [...formData.selectedModels, {id: m.ID, quantity: 1}]})}>{m.Name}</CommandItem>))}</CommandGroup></CommandList></Command>
                             </PopoverContent>
                           </Popover>
@@ -743,17 +729,6 @@ export default function ProductsPage() {
                           <Popover>
                             <PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-9 text-xs">{t("products.add_material")}<Plus className="h-3 w-3" /></Button></PopoverTrigger>
                             <PopoverContent className="w-[200px] p-0">
-                              <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
-                                <span className="text-[10px] font-bold tracking-wider text-muted-foreground">{t("nav.materials")}</span>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-6 w-6 p-0 text-primary hover:bg-primary/10"
-                                  onClick={() => window.location.href = '/admin/materials'}
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </Button>
-                              </div>
                               <Command><CommandInput placeholder={t("common.search")} /><CommandList><CommandGroup>{materials.map(m => (<CommandItem key={m.ID} onSelect={() => setFormData({...formData, selectedMaterials: [...formData.selectedMaterials, {id: m.ID, quantity: 1}]})}>{m.Name}</CommandItem>))}</CommandGroup></CommandList></Command>
                             </PopoverContent>
                           </Popover>
@@ -770,7 +745,7 @@ export default function ProductsPage() {
                 </CardContent>
               </div>
             </div>
-          </Card>
+          </CardComp>
 
           <CategoryCard
             id="category-management"
@@ -797,7 +772,7 @@ export default function ProductsPage() {
         </div>
 
         <div className="lg:col-span-8">
-          <Card className="h-full border-muted/40 bg-card/40 backdrop-blur-md shadow-lg flex flex-col">
+          <CardComp className="h-full border-muted/40 bg-card/40 backdrop-blur-md shadow-lg flex flex-col">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -832,8 +807,8 @@ export default function ProductsPage() {
                         <TableRow key={p.ID} className="hover:bg-muted/5 transition-colors border-muted/10 h-16">
                           <TableCell className="px-6 font-medium">
                             <div className="flex flex-col">
-                              <span className="text-sm font-bold">{p.Name} {p.ParentName}</span>
-                              <span className="text-[10px] text-muted-foreground/50 tracking-wide uppercase">Alt Ürün</span>
+                              <span className="text-sm font-bold">{parent?.Name || p.ParentName}</span>
+                              <span className="text-[10px] text-muted-foreground font-medium leading-tight">{p.Name}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-center">
@@ -865,19 +840,22 @@ export default function ProductsPage() {
                 </Table>
               )}
             </CardContent>
-          </Card>
+          </CardComp>
         </div>
       </div>
 
+      {/* Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-md bg-background/95 backdrop-blur-xl border-muted/30">
+        <DialogContent className="max-w-3xl bg-background/95 backdrop-blur-xl border-muted/30 max-h-[90vh] overflow-y-auto scrollbar-none">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold flex items-center gap-3">
               <ShoppingBag className="h-6 w-6 text-primary" />
-              {selectedProduct?.Name}
+              {selectedProduct?.Name} {products.find(p => p.ID === selectedProduct?.ParentID)?.Name}
             </DialogTitle>
             <DialogDescription>
-              {selectedProduct?.ParentName ? `Üst Ürün: ${selectedProduct.ParentName}` : "Ana Ürün"}
+              {selectedProduct?.ParentID 
+                ? `Üst Ürün: ${products.find(p => p.ID === selectedProduct.ParentID)?.Name}` 
+                : "Ana Ürün"}
             </DialogDescription>
           </DialogHeader>
           
@@ -891,7 +869,9 @@ export default function ProductsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <p className="text-[10px] font-bold text-muted-foreground uppercase">{t("products.name")}</p>
-                    <p className="text-sm font-semibold">{selectedProduct.ParentName}</p>
+                    <p className="text-sm font-semibold">
+                      {products.find(p => p.ID === selectedProduct.ParentID)?.Name || selectedProduct.ParentName}
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-[10px] font-bold text-muted-foreground uppercase">{t("common.category")}</p>
@@ -926,78 +906,150 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            {selectedProduct?.Description && (
-              <div className="space-y-1 p-4 bg-muted/10 rounded-xl border border-muted/20">
-                <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">{t("products.description")}</p>
-                <p className="text-sm text-muted-foreground leading-relaxed">{selectedProduct.Description}</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">{t("products.image_front")}</p>
+                <div className="aspect-square rounded-xl border border-muted/30 overflow-hidden bg-muted/10 group relative">
+                  {selectedProduct?.ImageFront ? (
+                    <img 
+                      src={`http://localhost:3001/${selectedProduct.ImageFront}`} 
+                      alt="Front" 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground italic text-xs">No Image</div>
+                  )}
+                </div>
               </div>
-            )}
-
-            <div className="grid grid-cols-3 gap-2">
-              <div className="p-3 bg-muted/10 rounded-xl border border-muted/20 text-center">
-                <Layers className="h-4 w-4 mx-auto mb-1 text-primary/60" />
-                <p className="text-[10px] font-bold text-muted-foreground uppercase">{t("nav.materials")}</p>
-                <p className="text-xs font-bold">
-                  {(selectedProduct?.materials?.length || 0) + (products.find(p => p.ID === selectedProduct?.ParentID)?.materials?.length || 0)}
-                </p>
-              </div>
-              <div className="p-3 bg-muted/10 rounded-xl border border-muted/20 text-center">
-                <TrendingUp className="h-4 w-4 mx-auto mb-1 text-primary/60" />
-                <p className="text-[10px] font-bold text-muted-foreground uppercase">{t("nav.models")}</p>
-                <p className="text-xs font-bold">
-                  {(selectedProduct?.models?.length || 0) + (products.find(p => p.ID === selectedProduct?.ParentID)?.models?.length || 0)}
-                </p>
-              </div>
-              <div className="p-3 bg-muted/10 rounded-xl border border-muted/20 text-center">
-                <Box className="h-4 w-4 mx-auto mb-1 text-primary/60" />
-                <p className="text-[10px] font-bold text-muted-foreground uppercase">{t("nav.filament")}</p>
-                <p className="text-xs font-bold">
-                  {(selectedProduct?.filaments?.length || 0) + (products.find(p => p.ID === selectedProduct?.ParentID)?.filaments?.length || 0)}
-                </p>
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">{t("products.image_back")}</p>
+                <div className="aspect-square rounded-xl border border-muted/30 overflow-hidden bg-muted/10 group relative">
+                  {selectedProduct?.ImageBack ? (
+                    <img 
+                      src={`http://localhost:3001/${selectedProduct.ImageBack}`} 
+                      alt="Back" 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground italic text-xs">No Image</div>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase flex items-center gap-2">
-                <Package className="h-3 w-3" />
-                {t("common.details")}
-              </h4>
-              <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 scrollbar-none">
-                {/* Parent Items */}
-                {products.find(p => p.ID === selectedProduct?.ParentID)?.materials?.map(m => (
-                  <div key={`pm-${m.ID}`} className="flex items-center justify-between p-2 rounded-lg bg-muted/10 border border-muted/20">
-                    <span className="text-xs">{m.Name} (Üst)</span>
-                    <span className="text-[10px] font-bold">{m.Quantity} Adet</span>
-                  </div>
-                ))}
-                {products.find(p => p.ID === selectedProduct?.ParentID)?.models?.map(m => (
-                  <div key={`pmo-${m.ID}`} className="flex items-center justify-between p-2 rounded-lg bg-muted/10 border border-muted/20">
-                    <span className="text-xs">{m.Name} (Üst)</span>
-                    <span className="text-[10px] font-bold">{m.Quantity} Adet</span>
-                  </div>
-                ))}
-                {/* Sub Items */}
-                {selectedProduct?.materials?.map(m => (
-                  <div key={`sm-${m.ID}`} className="flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10">
-                    <span className="text-xs">{m.Name}</span>
-                    <span className="text-[10px] font-bold">{m.Quantity} Adet</span>
-                  </div>
-                ))}
-                {selectedProduct?.models?.map(m => (
-                  <div key={`smo-${m.ID}`} className="flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10">
-                    <span className="text-xs">{m.Name}</span>
-                    <span className="text-[10px] font-bold">{m.Quantity} Adet</span>
-                  </div>
-                ))}
-                {selectedProduct?.filaments?.map(f => (
-                  <div key={`sf-${f.ID}`} className="flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10">
-                    <span className="text-xs">{f.Name}</span>
-                    <span className="text-[10px] font-bold">%{f.Quantity}</span>
-                  </div>
-                ))}
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase flex items-center gap-2">
+                  <Package className="h-3 w-3" />
+                  {t("common.details")}
+                </h4>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 scrollbar-none">
+                  {/* Parent Items */}
+                  {products.find(p => p.ID === selectedProduct?.ParentID)?.materials?.map(m => (
+                    <div key={`pm-${m.ID}`} className="flex items-center justify-between p-2 rounded-lg bg-muted/10 border border-muted/20">
+                      <span className="text-xs">{m.Name} (Üst)</span>
+                      <span className="text-[10px] font-bold">{m.Quantity} Adet</span>
+                    </div>
+                  ))}
+                  {products.find(p => p.ID === selectedProduct?.ParentID)?.models?.map(m => (
+                    <div key={`pmo-${m.ID}`} className="flex items-center justify-between p-2 rounded-lg bg-muted/10 border border-muted/20">
+                      <span className="text-xs">{m.Name} (Üst)</span>
+                      <span className="text-[10px] font-bold">{m.Quantity} Adet</span>
+                    </div>
+                  ))}
+                  {/* Sub Items */}
+                  {selectedProduct?.materials?.map(m => (
+                    <div key={`sm-${m.ID}`} className="flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10">
+                      <span className="text-xs">{m.Name}</span>
+                      <span className="text-[10px] font-bold">{m.Quantity} Adet</span>
+                    </div>
+                  ))}
+                  {selectedProduct?.models?.map(m => (
+                    <div key={`smo-${m.ID}`} className="flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10">
+                      <span className="text-xs">{m.Name}</span>
+                      <span className="text-[10px] font-bold">{m.Quantity} Adet</span>
+                    </div>
+                  ))}
+                  {selectedProduct?.filaments?.map(f => (
+                    <div key={`sf-${f.ID}`} className="flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10">
+                      <span className="text-xs">{f.Name}</span>
+                      <span className="text-[10px] font-bold">%{f.Quantity}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase flex items-center gap-2">
+                  <Box className="h-3 w-3" />
+                  {t("models.details.preview")}
+                </h4>
+                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-none">
+                  {/* Parent Models */}
+                  {products.find(p => p.ID === selectedProduct?.ParentID)?.models?.map(m => (
+                    <div key={`pmv-${m.ID}`} className="space-y-2">
+                      <p className="text-[9px] font-bold text-muted-foreground/60 tracking-wider uppercase">{m.Name} (Üst Ürün Modeli)</p>
+                      <ModelViewer filePath={models.find(mod => mod.ID === m.ID)?.FilePath} />
+                    </div>
+                  ))}
+                  {/* Sub Models */}
+                  {selectedProduct?.models?.map(m => (
+                    <div key={`smv-${m.ID}`} className="space-y-2">
+                      <p className="text-[9px] font-bold text-muted-foreground/60 tracking-wider uppercase">{m.Name}</p>
+                      <ModelViewer filePath={models.find(mod => mod.ID === m.ID)?.FilePath} />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-2xl bg-background/95 backdrop-blur-xl border-muted/30 max-h-[90vh] overflow-y-auto scrollbar-none">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit3 className="h-5 w-5 text-primary" />
+              {t("common.edit")}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdate} className="space-y-6 py-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">{t("products.name")}</Label>
+                <Input value={editFormData.name} onChange={(e) => setEditFormData({...editFormData, name: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">{t("products.description")}</Label>
+                <Input value={editFormData.description} onChange={(e) => setEditFormData({...editFormData, description: e.target.value})} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">{t("products.table.price")}</Label>
+                  <Input type="number" value={editFormData.price} onChange={(e) => setEditFormData({...editFormData, price: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">{t("products.profit_multiplier")}</Label>
+                  <Input type="number" step="0.1" value={editFormData.profitMultiplier} onChange={(e) => setEditFormData({...editFormData, profitMultiplier: e.target.value})} />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <ImageUploadField label={t("products.image_front")} file={editFormData.imageFront} setFile={(f) => setEditFormData({...editFormData, imageFront: f})} id="editImageFront" />
+                <ImageUploadField label={t("products.image_back")} file={editFormData.imageBack} setFile={(f) => setEditFormData({...editFormData, imageBack: f})} id="editImageBack" />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setIsEditOpen(false)}>{t("common.cancel")}</Button>
+              <Button type="submit" disabled={updating}>
+                {updating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+                {t("common.save")}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

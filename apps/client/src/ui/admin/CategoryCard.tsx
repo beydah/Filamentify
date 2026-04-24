@@ -21,6 +21,7 @@ interface CategoryCardProps {
   isLoading?: boolean
   addingCategory?: boolean
   deletingCategoryId?: number | null
+  id?: string
 }
 
 export function CategoryCard({
@@ -30,7 +31,8 @@ export function CategoryCard({
   onAdd,
   onDelete,
   addingCategory,
-  deletingCategoryId
+  deletingCategoryId,
+  id
 }: CategoryCardProps) {
   const { t } = useTranslation()
   const [isOpen, setIsOpen] = React.useState(true)
@@ -44,7 +46,7 @@ export function CategoryCard({
   }
 
   return (
-    <Card className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
+    <Card id={id} className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
       <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
         <div className="space-y-1.5">
           <CardTitle className="text-lg flex items-center gap-2">

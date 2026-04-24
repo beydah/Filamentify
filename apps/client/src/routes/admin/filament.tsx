@@ -617,6 +617,7 @@ export default function FilamentPage() {
 
      {/* Category Management */}
      <CategoryCard
+      id="category-management"
       title={t("common.add_category")}
       description={t("filament.categories_desc")}
       categories={categories}
@@ -799,7 +800,7 @@ export default function FilamentPage() {
                    "h-full rounded-full transition-all duration-700",
                    (filament.Available_Gram / filament.Gram) < 0.2 ? 'bg-destructive' : 'bg-primary'
                   )}
-                  style={{ width: `${(filament.Available_Gram / filament.Gram) * 100}%` }}
+                  style={{ width: `${filament.Gram > 0 ? (filament.Available_Gram / filament.Gram) * 100 : 0}%` }}
                  />
                 </div>
                </div>

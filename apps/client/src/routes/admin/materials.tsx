@@ -146,7 +146,7 @@ export default function MaterialsPage() {
   const filteredMaterials = materials.filter(m => {
     const categoryMatch = filterCategory === "all" || m.CategoryID?.toString() === filterCategory
     const statusMatch = filterStatus === "all" || (
-      filterStatus === "stock" ? m.Quantity >= 10 : m.Quantity < 10
+      filterStatus === "stock" ? (m.Quantity || 0) >= 10 : (m.Quantity || 0) < 10
     )
     return categoryMatch && statusMatch
   })
@@ -501,6 +501,7 @@ export default function MaterialsPage() {
           </Card>
 
           <CategoryCard
+            id="category-management"
             title={t("common.add_category")}
             description={t("materials.categories_desc")}
             categories={categories}
@@ -638,8 +639,10 @@ export default function MaterialsPage() {
                               {m.CategoryName}
                             </span>
                           </TableCell>
-                          <TableCell className="text-center font-bold">{(m.TotalPrice / m.Quantity).toFixed(2)}</TableCell>
-                          <TableCell className="text-center font-bold">{(m.UsagePerUnit || 50)}%</TableCell>
+                          <TableCell className="text-center font-bold">
+                            {m.Quantity > 0 ? (m.TotalPrice / m.Quantity).toFixed(2) : "0.00"}
+                          </TableCell>
+                          <TableCell className="text-center font-bold">{m.UsagePerUnit ?? 100}%</TableCell>
                           <TableCell className="text-center">
                             <div className="flex flex-col items-center gap-1 w-full mx-auto max-w-[100px]">
                               <div className="flex justify-between w-full text-[9px] font-bold tracking-tighter text-muted-foreground/60 uppercase">

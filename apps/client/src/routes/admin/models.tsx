@@ -20,7 +20,6 @@ import {
   Box,
   FileText,
   Eye,
-  Edit3 as Edit3Icon,
   Minus
 } from "lucide-react"
 import { Canvas } from "@react-three/fiber"
@@ -122,18 +121,9 @@ function ModelViewer({ filePath }: { filePath?: string }) {
       <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
         <Stage intensity={0.5} environment="city" adjustCamera={1.5}>
           <React.Suspense fallback={null}>
-            {isSTL ? (
-              <Center>
-                <STLModel url={url} />
-              </Center>
-            ) : (
-              <Center>
-                <mesh>
-                  <boxGeometry args={[1, 1, 1]} />
-                  <meshStandardMaterial color="orange" />
-                </mesh>
-              </Center>
-            )}
+            <Center>
+              <STLModel url={url} />
+            </Center>
           </React.Suspense>
         </Stage>
         <OrbitControls makeDefault />
@@ -593,6 +583,7 @@ export default function ModelsPage() {
           </Card>
 
           <CategoryCard
+            id="category-management"
             title={t("common.add_category")}
             description={t("models.categories_desc")}
             categories={categories}
@@ -795,7 +786,7 @@ export default function ModelsPage() {
         <DialogContent className="max-w-md bg-background/95 backdrop-blur-xl border-muted/30">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-              <Edit3Icon className="h-6 w-6 text-primary" />
+              <Edit3 className="h-6 w-6 text-primary" />
               {t("common.edit")}
             </DialogTitle>
           </DialogHeader>
