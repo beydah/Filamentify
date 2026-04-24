@@ -277,7 +277,7 @@ export default function ProductsPage() {
 
       <div className="grid gap-8 lg:grid-cols-12">
         {/* Left Column: Form */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className="lg:col-span-4 space-y-6">
           <Card className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
             <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
               <div className="space-y-1.5">
@@ -305,7 +305,7 @@ export default function ProductsPage() {
               <div className="overflow-hidden">
                 <CardContent className="pb-6">
                   <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-4">
                       <div className="space-y-2">
                         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.name")}</Label>
                         <Input
@@ -538,7 +538,7 @@ export default function ProductsPage() {
         </div>
 
         {/* Right Column: List (Table) */}
-        <div className="lg:col-span-7">
+        <div className="lg:col-span-8">
           <Card className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg h-full flex flex-col overflow-hidden transition-all duration-300">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">

@@ -509,6 +509,7 @@ export default function ModelsPage() {
                         <Input
                           type="number"
                           step="1"
+                          min="1"
                           placeholder={t("models.piece_count_placeholder")}
                           value={formData.pieceCount}
                           onChange={(e) => setFormData({ ...formData, pieceCount: e.target.value })}
@@ -816,42 +817,7 @@ export default function ModelsPage() {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold">{t("models.gram")}</Label>
-                <div className="flex items-center gap-1">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-10 w-10 shrink-0 bg-background/40"
-                    onClick={() => {
-                      const val = Math.max(0, Number(editFormData.gram) - 50);
-                      setEditFormData({ ...editFormData, gram: val.toString() });
-                    }}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <Input
-                    type="number"
-                    value={editFormData.gram}
-                    onChange={(e) => setEditFormData({ ...editFormData, gram: e.target.value })}
-                    required
-                    className="bg-background/40 text-center"
-                  />
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-10 w-10 shrink-0 bg-background/40"
-                    onClick={() => {
-                      const val = Number(editFormData.gram) + 50;
-                      setEditFormData({ ...editFormData, gram: val.toString() });
-                    }}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+
               <div className="space-y-2">
                 <Label className="text-xs font-semibold">{t("models.category")}</Label>
                 <Popover>
