@@ -89,6 +89,9 @@ interface ProductDetail {
   ID: number
   Name: string
   Quantity: number
+  ModelID?: number
+  MaterialID?: number
+  FilamentID?: number
 }
 
 interface Filament {
@@ -989,14 +992,14 @@ export default function ProductsPage() {
                   {products.find(p => p.ID === selectedProduct?.ParentID)?.models?.map(m => (
                     <div key={`pmv-${m.ID}`} className="space-y-2">
                       <p className="text-[9px] font-bold text-muted-foreground/60 tracking-wider uppercase">{m.Name} (Üst Ürün Modeli)</p>
-                      <ModelViewer filePath={models.find(mod => mod.ID === m.ID)?.FilePath} />
+                      <ModelViewer filePath={models.find(mod => mod.ID === m.ModelID)?.FilePath} />
                     </div>
                   ))}
                   {/* Sub Models */}
                   {selectedProduct?.models?.map(m => (
                     <div key={`smv-${m.ID}`} className="space-y-2">
                       <p className="text-[9px] font-bold text-muted-foreground/60 tracking-wider uppercase">{m.Name}</p>
-                      <ModelViewer filePath={models.find(mod => mod.ID === m.ID)?.FilePath} />
+                      <ModelViewer filePath={models.find(mod => mod.ID === m.ModelID)?.FilePath} />
                     </div>
                   ))}
                 </div>
