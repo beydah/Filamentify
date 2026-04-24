@@ -100,11 +100,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       icon: Cpu,
     },
     {
-      title: t("nav.appearance"),
-      url: "/admin/appearance",
-      icon: Palette,
-    },
-    {
       title: t("nav.users"),
       url: "/admin/members",
       icon: Users2,

@@ -19,6 +19,7 @@
     "select_category": "Kategori Seçin...",
     "search_category": "Kategori ara...",
     "category_not_found": "Kategori bulunamadı.",
+    "no_category": "Kategorisiz",
     "add_category": "Kategori Ekle",
     "notifications": {
       "added": "Başarıyla eklendi",
@@ -174,6 +175,13 @@
     "price": "Satış Fiyatı",
     "stock": "Stok Adedi",
     "image": "Görsel URL",
+    "image_front": "Ön Görsel",
+    "image_back": "Arka Görsel",
+    "profit_multiplier": "Kâr Çarpanı",
+    "select_materials": "Malzeme Seçimi",
+    "add_material": "Malzeme Ekle",
+    "select_models": "Model Seçimi",
+    "add_model": "Model Ekle",
     "inventory": "Ürün Listesi",
     "inventory_desc": "Mağazadaki tüm ürünler.",
     "table": {

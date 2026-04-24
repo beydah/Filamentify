@@ -30,10 +30,10 @@ const upload = multer({
   storage: storage,
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase()
-    if (ext === ".stl") {
+    if (ext === ".stl" || ext === ".jpg" || ext === ".jpeg" || ext === ".png" || ext === ".webp") {
       cb(null, true)
     } else {
-      cb(new Error("Only .stl files are allowed"))
+      cb(new Error("File type not allowed"))
     }
   }
 })
@@ -340,34 +340,107 @@ app.delete("/api/materials/:id", (req, res) => {
 
 // Product Endpoints
 app.get("/api/products", (req, res) => {
-  const products = db.prepare("SELECT * FROM Product_TB").all()
-  res.json(products)
+  const products = db.prepare("SELECT * FROM Product_TB").all() as any[]
+  
+  // Fetch materials and models for each product
+  const productsWithDetails = products.map(p => {
+    const materials = db.prepare(`
+      SELECT pm.*, m.Name 
+      FROM ProductMaterials_TB pm
+      JOIN Material_TB m ON pm.MaterialID = m.ID
+      WHERE pm.ProductID = ?
+    `).all(p.ID)
+    
+    const models = db.prepare(`
+      SELECT pm.*, m.Name 
+      FROM ProductModels_TB pm
+      JOIN Model_TB m ON pm.ModelID = m.ID
+      WHERE pm.ProductID = ?
+    `).all(p.ID)
+    
+    return { ...p, materials, models }
+  })
+  
+  res.json(productsWithDetails)
 })
 
-app.post("/api/products", (req, res) => {
-  const { name, description, price, stock, image } = req.body
+app.post("/api/products", upload.fields([{ name: 'imageFront', maxCount: 1 }, { name: 'imageBack', maxCount: 1 }]), (req, res) => {
+  const { name, description, price, stock, profitMultiplier, materials, models } = req.body
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] }
+  
+  const imageFront = files['imageFront'] ? files['imageFront'][0].path.replace(/\\/g, "/") : null
+  const imageBack = files['imageBack'] ? files['imageBack'][0].path.replace(/\\/g, "/") : null
+
   try {
-    const info = db.prepare(`
-      INSERT INTO Product_TB (Name, Description, Price, Stock, Image) 
-      VALUES (?, ?, ?, ?, ?)
-    `).run(name, description, price, stock, image)
-    res.status(201).json({ ID: info.lastInsertRowid, Name: name, Description: description, Price: price, Stock: stock, Image: image })
+    const insertProduct = db.prepare(`
+      INSERT INTO Product_TB (Name, Description, Price, Stock, ImageFront, ImageBack, ProfitMultiplier) 
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `)
+    
+    const info = insertProduct.run(name, description, price, stock, imageFront, imageBack, profitMultiplier || 1.0)
+    const productId = info.lastInsertRowid
+
+    // Insert materials
+    if (materials) {
+      const mats = JSON.parse(materials)
+      const insertMat = db.prepare("INSERT INTO ProductMaterials_TB (ProductID, MaterialID, Quantity) VALUES (?, ?, ?)")
+      mats.forEach((m: any) => insertMat.run(productId, m.id, m.quantity))
+    }
+
+    // Insert models
+    if (models) {
+      const mods = JSON.parse(models)
+      const insertMod = db.prepare("INSERT INTO ProductModels_TB (ProductID, ModelID, Quantity) VALUES (?, ?, ?)")
+      mods.forEach((m: any) => insertMod.run(productId, m.id, m.quantity))
+    }
+
+    res.status(201).json({ ID: productId })
   } catch (error) {
+    console.error(error)
     res.status(400).json({ error: "Failed to create product" })
   }
 })
 
-app.patch("/api/products/:id", (req, res) => {
+app.patch("/api/products/:id", upload.fields([{ name: 'imageFront', maxCount: 1 }, { name: 'imageBack', maxCount: 1 }]), (req, res) => {
   const { id } = req.params
-  const { name, description, price, stock, image } = req.body
+  const { name, description, price, stock, profitMultiplier, materials, models } = req.body
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] }
+
   try {
+    const current = db.prepare("SELECT ImageFront, ImageBack FROM Product_TB WHERE ID = ?").get(id) as any
+    
+    const imageFront = files['imageFront'] ? files['imageFront'][0].path.replace(/\\/g, "/") : current.ImageFront
+    const imageBack = files['imageBack'] ? files['imageBack'][0].path.replace(/\\/g, "/") : current.ImageBack
+
+    // Delete old files if new ones uploaded
+    if (files['imageFront'] && current.ImageFront && fs.existsSync(current.ImageFront)) fs.unlinkSync(current.ImageFront)
+    if (files['imageBack'] && current.ImageBack && fs.existsSync(current.ImageBack)) fs.unlinkSync(current.ImageBack)
+
     db.prepare(`
       UPDATE Product_TB 
-      SET Name = ?, Description = ?, Price = ?, Stock = ?, Image = ?
+      SET Name = ?, Description = ?, Price = ?, Stock = ?, ImageFront = ?, ImageBack = ?, ProfitMultiplier = ?
       WHERE ID = ?
-    `).run(name, description, price, stock, image, id)
+    `).run(name, description, price, stock, imageFront, imageBack, profitMultiplier || 1.0, id)
+
+    // Update materials (clear and re-insert)
+    if (materials) {
+      db.prepare("DELETE FROM ProductMaterials_TB WHERE ProductID = ?").run(id)
+      const mats = JSON.parse(materials)
+      const insertMat = db.prepare("INSERT INTO ProductMaterials_TB (ProductID, MaterialID, Quantity) VALUES (?, ?, ?)")
+      mats.forEach((m: any) => insertMat.run(id, m.id, m.quantity))
+    }
+
+    // Update models
+    if (models) {
+      db.prepare("DELETE FROM ProductModels_TB WHERE ProductID = ?").run(id)
+      const mods = JSON.parse(models)
+      const insertMod = db.prepare("INSERT INTO ProductModels_TB (ProductID, ModelID, Quantity) VALUES (?, ?, ?)")
+      mods.forEach((m: any) => insertMod.run(id, m.id, m.quantity))
+    }
+
     res.json({ message: "Product updated successfully" })
   } catch (error) {
+    console.error(error)
     res.status(500).json({ error: "Failed to update product" })
   }
 })
@@ -375,6 +448,10 @@ app.patch("/api/products/:id", (req, res) => {
 app.delete("/api/products/:id", (req, res) => {
   const { id } = req.params
   try {
+    const current = db.prepare("SELECT ImageFront, ImageBack FROM Product_TB WHERE ID = ?").get(id) as any
+    if (current.ImageFront && fs.existsSync(current.ImageFront)) fs.unlinkSync(current.ImageFront)
+    if (current.ImageBack && fs.existsSync(current.ImageBack)) fs.unlinkSync(current.ImageBack)
+    
     db.prepare("DELETE FROM Product_TB WHERE ID = ?").run(id)
     res.json({ message: "Product deleted successfully" })
   } catch (error) {

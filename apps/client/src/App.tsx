@@ -35,7 +35,6 @@ import StatsPage from "@/routes/admin/stats"
 import ProductsPage from "@/routes/admin/products"
 import MediaPage from "@/routes/admin/media"
 import PostsPage from "@/routes/admin/posts"
-import AppearancePage from "@/routes/admin/appearance"
 import MachinesPage from "@/routes/admin/machines"
 import FormsPage from "@/routes/admin/forms"
 import MaterialsPage from "@/routes/admin/materials"
@@ -59,7 +58,6 @@ function Breadcrumbs() {
     products: "Ürünler",
     media: "Medya",
     posts: "Yazılar",
-    appearance: "Görünüm",
     machines: "Makineler",
     forms: "Formlar"
   }
@@ -125,7 +123,6 @@ function AppContent() {
           <Route path="/admin/products" element={<ProductsPage />} />
           <Route path="/admin/media" element={<MediaPage />} />
           <Route path="/admin/posts" element={<PostsPage />} />
-          <Route path="/admin/appearance" element={<AppearancePage />} />
           <Route path="/admin/machines" element={<MachinesPage />} />
           <Route path="/admin/forms" element={<FormsPage />} />
         </Routes>

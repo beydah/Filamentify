@@ -19,7 +19,8 @@ import {
   Filter,
   FilterX,
   Eye,
-  Database
+  Database,
+  Minus
 } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { tr, enUS } from "date-fns/locale"
@@ -316,7 +317,7 @@ export default function FilamentPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          categoryId: parseInt(editFormData.categoryId),
+          categoryId: editFormData.categoryId ? parseInt(editFormData.categoryId) : null,
           price: parseInt(editFormData.price),
           gram: parseInt(editFormData.gram),
           purchaseDate: editFormData.purchaseDate.toISOString(),
@@ -907,6 +908,13 @@ export default function FilamentPage() {
                       <CommandList>
                         <CommandEmpty>{t("common.no_data")}</CommandEmpty>
                         <CommandGroup>
+                          <CommandItem
+                            onSelect={() => setEditFormData({ ...editFormData, categoryId: "" })}
+                            className="text-muted-foreground italic"
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", !editFormData.categoryId ? "opacity-100" : "opacity-0")} />
+                            {t("common.no_category")}
+                          </CommandItem>
                           {categories.map((cat) => (
                             <CommandItem
                               key={cat.ID}
@@ -926,29 +934,77 @@ export default function FilamentPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-price" className="text-xs tracking-wider text-muted-foreground font-semibold">{t("filament.price")}</Label>
-                  <Input
-                    id="edit-price"
-                    type="number"
-                    step="100"
-                    min="100"
-                    max="2500"
-                    value={editFormData.price}
-                    onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })}
-                    required
-                  />
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon" 
+                      className="h-10 w-10 shrink-0 bg-background/40"
+                      onClick={() => {
+                        const val = Math.max(100, Number(editFormData.price) - 100);
+                        setEditFormData({ ...editFormData, price: val.toString() });
+                      }}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      id="edit-price"
+                      type="number"
+                      value={editFormData.price}
+                      onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })}
+                      required
+                      className="bg-background/40 text-center"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon" 
+                      className="h-10 w-10 shrink-0 bg-background/40"
+                      onClick={() => {
+                        const val = Math.min(2500, Number(editFormData.price) + 100);
+                        setEditFormData({ ...editFormData, price: val.toString() });
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-gram" className="text-xs tracking-wider text-muted-foreground font-semibold">{t("filament.gram")}</Label>
-                  <Input
-                    id="edit-gram"
-                    type="number"
-                    step="100"
-                    min="100"
-                    max="5000"
-                    value={editFormData.gram}
-                    onChange={(e) => setEditFormData({ ...editFormData, gram: e.target.value })}
-                    required
-                  />
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon" 
+                      className="h-10 w-10 shrink-0 bg-background/40"
+                      onClick={() => {
+                        const val = Math.max(100, Number(editFormData.gram) - 100);
+                        setEditFormData({ ...editFormData, gram: val.toString() });
+                      }}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      id="edit-gram"
+                      type="number"
+                      value={editFormData.gram}
+                      onChange={(e) => setEditFormData({ ...editFormData, gram: e.target.value })}
+                      required
+                      className="bg-background/40 text-center"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon" 
+                      className="h-10 w-10 shrink-0 bg-background/40"
+                      onClick={() => {
+                        const val = Math.min(5000, Number(editFormData.gram) + 100);
+                        setEditFormData({ ...editFormData, gram: val.toString() });
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">

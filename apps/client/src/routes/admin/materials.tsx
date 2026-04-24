@@ -16,7 +16,8 @@ import {
   Eye,
   Edit3,
   AlertCircle,
-  Layers
+  Layers,
+  Minus
 } from "lucide-react"
 import { Button } from "@/ui/controls/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/controls/card"
@@ -59,6 +60,7 @@ import {
   DialogTitle,
 } from "@/ui/controls/dialog"
 import { Calendar } from "@/ui/controls/calendar"
+import { subMonths } from "date-fns"
 import { toast } from "sonner"
 
 interface MaterialCategory {
@@ -253,6 +255,7 @@ export default function MaterialsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...editFormData,
+          categoryId: editFormData.categoryId ? parseInt(editFormData.categoryId) : null,
           name: toTitleCase(editFormData.name),
           purchaseDate: editFormData.purchaseDate.toISOString()
         })
@@ -396,31 +399,75 @@ export default function MaterialsPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("materials.quantity")}</Label>
-                        <Input
-                          type="number"
-                          step="50"
-                          min="1"
-                          max="2500"
-                          placeholder="100"
-                          value={formData.quantity}
-                          onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                          required
-                          className="bg-background/40 border-muted/30 transition-all"
-                        />
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-10 w-10 shrink-0 bg-background/40"
+                            onClick={() => {
+                              const val = Math.max(1, Number(formData.quantity) - 50);
+                              setFormData({ ...formData, quantity: val.toString() });
+                            }}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <Input
+                            type="number"
+                            value={formData.quantity}
+                            onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                            required
+                            className="bg-background/40 border-muted/30 text-center"
+                          />
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-10 w-10 shrink-0 bg-background/40"
+                            onClick={() => {
+                              const val = Math.min(2500, Number(formData.quantity) + 50);
+                              setFormData({ ...formData, quantity: val.toString() });
+                            }}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("materials.total_price")}</Label>
-                        <Input
-                          type="number"
-                          step="50"
-                          min="1"
-                          max="5000"
-                          placeholder="100"
-                          value={formData.totalPrice}
-                          onChange={(e) => setFormData({ ...formData, totalPrice: e.target.value })}
-                          required
-                          className="bg-background/40 border-muted/30 transition-all"
-                        />
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-10 w-10 shrink-0 bg-background/40"
+                            onClick={() => {
+                              const val = Math.max(1, Number(formData.totalPrice) - 50);
+                              setFormData({ ...formData, totalPrice: val.toString() });
+                            }}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <Input
+                            type="number"
+                            value={formData.totalPrice}
+                            onChange={(e) => setFormData({ ...formData, totalPrice: e.target.value })}
+                            required
+                            className="bg-background/40 border-muted/30 text-center"
+                          />
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-10 w-10 shrink-0 bg-background/40"
+                            onClick={() => {
+                              const val = Math.min(5000, Number(formData.totalPrice) + 50);
+                              setFormData({ ...formData, totalPrice: val.toString() });
+                            }}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
 
@@ -445,7 +492,7 @@ export default function MaterialsPage() {
                             mode="single"
                             selected={formData.purchaseDate}
                             onSelect={(date) => date && setFormData({ ...formData, purchaseDate: date })}
-                            disabled={(date) => date > new Date()}
+                            disabled={(date) => date > new Date() || date < subMonths(new Date(), 1)}
                             initialFocus
                           />
                         </PopoverContent>
@@ -746,32 +793,82 @@ export default function MaterialsPage() {
                 </PopoverContent>
               </Popover>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs font-semibold">{t("materials.quantity")}</Label>
-                <Input
-                  type="number"
-                  step="50"
-                  min="1"
-                  max="2500"
-                  value={editFormData.quantity}
-                  onChange={(e) => setEditFormData({ ...editFormData, quantity: e.target.value })}
-                  required
-                />
+                <div className="flex items-center gap-1">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-10 w-10 shrink-0 bg-background/40"
+                    onClick={() => {
+                      const val = Math.max(1, Number(editFormData.quantity) - 50);
+                      setEditFormData({ ...editFormData, quantity: val.toString() });
+                    }}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    type="number"
+                    value={editFormData.quantity}
+                    onChange={(e) => setEditFormData({ ...editFormData, quantity: e.target.value })}
+                    required
+                    className="bg-background/40 text-center"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-10 w-10 shrink-0 bg-background/40"
+                    onClick={() => {
+                      const val = Math.min(2500, Number(editFormData.quantity) + 50);
+                      setEditFormData({ ...editFormData, quantity: val.toString() });
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-semibold">{t("materials.total_price")}</Label>
-                <Input
-                  type="number"
-                  step="50"
-                  min="1"
-                  max="5000"
-                  value={editFormData.totalPrice}
-                  onChange={(e) => setEditFormData({ ...editFormData, totalPrice: e.target.value })}
-                  required
-                />
+                <div className="flex items-center gap-1">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-10 w-10 shrink-0 bg-background/40"
+                    onClick={() => {
+                      const val = Math.max(1, Number(editFormData.totalPrice) - 50);
+                      setEditFormData({ ...editFormData, totalPrice: val.toString() });
+                    }}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    type="number"
+                    value={editFormData.totalPrice}
+                    onChange={(e) => setEditFormData({ ...editFormData, totalPrice: e.target.value })}
+                    required
+                    className="bg-background/40 text-center"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-10 w-10 shrink-0 bg-background/40"
+                    onClick={() => {
+                      const val = Math.min(5000, Number(editFormData.totalPrice) + 50);
+                      setEditFormData({ ...editFormData, totalPrice: val.toString() });
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
+
             <div className="space-y-2">
               <Label className="text-xs font-semibold">{t("materials.purchase_date")}</Label>
               <Popover>
@@ -785,7 +882,7 @@ export default function MaterialsPage() {
                     mode="single"
                     selected={editFormData.purchaseDate}
                     onSelect={(date) => date && setEditFormData({ ...editFormData, purchaseDate: date })}
-                    disabled={(date) => date > new Date()}
+                    disabled={(date) => date > new Date() || date < subMonths(new Date(), 1)}
                     initialFocus
                   />
                 </PopoverContent>

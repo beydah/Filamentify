@@ -19,11 +19,15 @@ import {
   FilterX,
   Box,
   FileText,
-  Eye
+  Eye,
+  Edit3 as Edit3Icon,
+  Minus
 } from "lucide-react"
 import { Canvas } from "@react-three/fiber"
 import { OrbitControls, Stage, Center } from "@react-three/drei"
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js"
+import { Calendar } from "@/ui/controls/calendar"
+import { subMonths } from "date-fns"
 import { useLoader } from "@react-three/fiber"
 import { toast } from "sonner"
 
@@ -55,16 +59,14 @@ import {
   Command,
   CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
+  CommandInput,
 } from "@/ui/controls/command"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/ui/controls/dropdown-menu"
 import {
@@ -230,7 +232,11 @@ export default function ModelsPage() {
       const response = await fetch("http://localhost:3001/api/model-categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: toTitleCase(newCategory) }),
+        body: JSON.stringify({
+          ...editFormData,
+          categoryId: editFormData.categoryId ? parseInt(editFormData.categoryId) : null,
+          name: toTitleCase(editFormData.name)
+        })
       })
       if (response.ok) {
         setNewCategory("")
@@ -811,6 +817,42 @@ export default function ModelsPage() {
                 />
               </div>
               <div className="space-y-2">
+                <Label className="text-xs font-semibold">{t("models.gram")}</Label>
+                <div className="flex items-center gap-1">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-10 w-10 shrink-0 bg-background/40"
+                    onClick={() => {
+                      const val = Math.max(0, Number(editFormData.gram) - 50);
+                      setEditFormData({ ...editFormData, gram: val.toString() });
+                    }}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    type="number"
+                    value={editFormData.gram}
+                    onChange={(e) => setEditFormData({ ...editFormData, gram: e.target.value })}
+                    required
+                    className="bg-background/40 text-center"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-10 w-10 shrink-0 bg-background/40"
+                    onClick={() => {
+                      const val = Number(editFormData.gram) + 50;
+                      setEditFormData({ ...editFormData, gram: val.toString() });
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
                 <Label className="text-xs font-semibold">{t("models.category")}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -821,9 +863,18 @@ export default function ModelsPage() {
                   </PopoverTrigger>
                   <PopoverContent className="w-[200px] p-0">
                     <Command>
+                      <CommandInput placeholder={t("common.search")} />
                       <CommandList>
+                        <CommandEmpty>{t("common.no_data")}</CommandEmpty>
                         <CommandGroup>
-                          {categories.map(cat => (
+                          <CommandItem
+                            onSelect={() => setEditFormData({ ...editFormData, categoryId: "" })}
+                            className="text-muted-foreground italic"
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", !editFormData.categoryId ? "opacity-100" : "opacity-0")} />
+                            {t("common.no_category")}
+                          </CommandItem>
+                          {categories.map((cat) => (
                             <CommandItem
                               key={cat.ID}
                               onSelect={() => setEditFormData({ ...editFormData, categoryId: cat.ID.toString() })}

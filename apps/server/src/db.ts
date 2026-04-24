@@ -69,13 +69,32 @@ db.exec(`
     Description TEXT,
     Price REAL NOT NULL,
     Stock INTEGER DEFAULT 0,
-    Image TEXT,
+    ImageFront TEXT,
+    ImageBack TEXT,
+    ProfitMultiplier REAL DEFAULT 1.0,
     PurchaseDate DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- Ensure Name column exists if table was created before
-  PRAGMA table_info(Filament_TB);
-  PRAGMA table_info(Model_TB);
+  CREATE TABLE IF NOT EXISTS ProductMaterials_TB (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    ProductID INTEGER,
+    MaterialID INTEGER,
+    Quantity INTEGER DEFAULT 1,
+    FOREIGN KEY (ProductID) REFERENCES Product_TB(ID) ON DELETE CASCADE,
+    FOREIGN KEY (MaterialID) REFERENCES Material_TB(ID)
+  );
+
+  CREATE TABLE IF NOT EXISTS ProductModels_TB (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    ProductID INTEGER,
+    ModelID INTEGER,
+    Quantity INTEGER DEFAULT 1,
+    FOREIGN KEY (ProductID) REFERENCES Product_TB(ID) ON DELETE CASCADE,
+    FOREIGN KEY (ModelID) REFERENCES Model_TB(ID)
+  );
+
+  -- Migration for existing Product_TB if any
+  PRAGMA table_info(Product_TB);
 `)
 
 interface TableColumn {
@@ -95,6 +114,17 @@ if (!modelInfo.find(col => col.name === "FilePath")) {
 
 if (!modelInfo.find(col => col.name === "PieceCount")) {
   db.exec("ALTER TABLE Model_TB ADD COLUMN PieceCount INTEGER DEFAULT 1")
+}
+
+const productInfo = db.prepare("PRAGMA table_info(Product_TB)").all() as TableColumn[]
+if (!productInfo.find(col => col.name === "ImageFront")) {
+  db.exec("ALTER TABLE Product_TB ADD COLUMN ImageFront TEXT")
+}
+if (!productInfo.find(col => col.name === "ImageBack")) {
+  db.exec("ALTER TABLE Product_TB ADD COLUMN ImageBack TEXT")
+}
+if (!productInfo.find(col => col.name === "ProfitMultiplier")) {
+  db.exec("ALTER TABLE Product_TB ADD COLUMN ProfitMultiplier REAL DEFAULT 1.0")
 }
 
 export default db

@@ -13,7 +13,13 @@ import {
   Edit3,
   Image as ImageIcon,
   DollarSign,
-  Package
+  Package,
+  Layers,
+  Box,
+  TrendingUp,
+  X,
+  Check,
+  ChevronsUpDown
 } from "lucide-react"
 import { Button } from "@/ui/controls/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/controls/card"
@@ -42,7 +48,36 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/ui/controls/dialog"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/ui/controls/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/ui/controls/popover"
 import { toast } from "sonner"
+
+interface Material {
+  ID: number
+  Name: string
+}
+
+interface Model {
+  ID: number
+  Name: string
+}
+
+interface ProductDetail {
+  ID: number
+  Name: string
+  Quantity: number
+}
 
 interface Product {
   ID: number
@@ -50,8 +85,11 @@ interface Product {
   Description: string
   Price: number
   Stock: number
-  Image: string
-  PurchaseDate: string
+  ImageFront: string
+  ImageBack: string
+  ProfitMultiplier: number
+  materials: ProductDetail[]
+  models: ProductDetail[]
 }
 
 const toTitleCase = (str: string) => {
@@ -62,18 +100,25 @@ export default function ProductsPage() {
   const { t } = useTranslation()
   const [isFormOpen, setIsFormOpen] = React.useState(true)
   const [products, setProducts] = React.useState<Product[]>([])
+  const [materials, setMaterials] = React.useState<Material[]>([])
+  const [models, setModels] = React.useState<Model[]>([])
   const [loading, setLoading] = React.useState(true)
   const [submitting, setSubmitting] = React.useState(false)
 
+  // Form State
   const [formData, setFormData] = React.useState({
     name: "",
     description: "",
     price: "0",
     stock: "0",
-    image: ""
+    profitMultiplier: "1.0",
+    imageFront: null as File | null,
+    imageBack: null as File | null,
+    selectedMaterials: [] as { id: number, quantity: number }[],
+    selectedModels: [] as { id: number, quantity: number }[]
   })
 
-  const [isDetailOpen, setIsDetailOpen] = React.useState(false)
+  // Edit State
   const [isEditOpen, setIsEditOpen] = React.useState(false)
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null)
   const [editFormData, setEditFormData] = React.useState({
@@ -81,17 +126,32 @@ export default function ProductsPage() {
     description: "",
     price: "",
     stock: "",
-    image: ""
+    profitMultiplier: "1.0",
+    imageFront: null as File | null,
+    imageBack: null as File | null,
+    selectedMaterials: [] as { id: number, quantity: number }[],
+    selectedModels: [] as { id: number, quantity: number }[]
   })
   const [updating, setUpdating] = React.useState(false)
 
+  // Fetch Data
   const fetchData = React.useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:3001/api/products")
-      const data = await res.json()
-      setProducts(data)
+      const [prodRes, matRes, modRes] = await Promise.all([
+        fetch("http://localhost:3001/api/products"),
+        fetch("http://localhost:3001/api/materials"),
+        fetch("http://localhost:3001/api/models")
+      ])
+      const [prodData, matData, modData] = await Promise.all([
+        prodRes.json(),
+        matRes.json(),
+        modRes.json()
+      ])
+      setProducts(prodData)
+      setMaterials(matData)
+      setModels(modData)
     } catch (error) {
-      console.error("Failed to fetch products:", error)
+      console.error("Failed to fetch data:", error)
     } finally {
       setLoading(false)
     }
@@ -105,14 +165,22 @@ export default function ProductsPage() {
     e.preventDefault()
     if (!formData.name) return
     setSubmitting(true)
+    
+    const body = new FormData()
+    body.append("name", toTitleCase(formData.name))
+    body.append("description", formData.description)
+    body.append("price", formData.price)
+    body.append("stock", formData.stock)
+    body.append("profitMultiplier", formData.profitMultiplier)
+    if (formData.imageFront) body.append("imageFront", formData.imageFront)
+    if (formData.imageBack) body.append("imageBack", formData.imageBack)
+    body.append("materials", JSON.stringify(formData.selectedMaterials))
+    body.append("models", JSON.stringify(formData.selectedModels))
+
     try {
       const response = await fetch("http://localhost:3001/api/products", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          name: toTitleCase(formData.name)
-        })
+        body
       })
       if (response.ok) {
         toast.success(t("common.notifications.added"))
@@ -121,7 +189,11 @@ export default function ProductsPage() {
           description: "",
           price: "0",
           stock: "0",
-          image: ""
+          profitMultiplier: "1.0",
+          imageFront: null,
+          imageBack: null,
+          selectedMaterials: [],
+          selectedModels: []
         })
         fetchData()
       }
@@ -129,6 +201,39 @@ export default function ProductsPage() {
       console.error("Failed to add product:", error)
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedProduct) return
+    setUpdating(true)
+
+    const body = new FormData()
+    body.append("name", toTitleCase(editFormData.name))
+    body.append("description", editFormData.description)
+    body.append("price", editFormData.price)
+    body.append("stock", editFormData.stock)
+    body.append("profitMultiplier", editFormData.profitMultiplier)
+    if (editFormData.imageFront) body.append("imageFront", editFormData.imageFront)
+    if (editFormData.imageBack) body.append("imageBack", editFormData.imageBack)
+    body.append("materials", JSON.stringify(editFormData.selectedMaterials))
+    body.append("models", JSON.stringify(editFormData.selectedModels))
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/products/${selectedProduct.ID}`, {
+        method: "PATCH",
+        body
+      })
+      if (response.ok) {
+        toast.success(t("common.notifications.updated"))
+        setIsEditOpen(false)
+        fetchData()
+      }
+    } catch (error) {
+      console.error("Failed to update product:", error)
+    } finally {
+      setUpdating(false)
     }
   }
 
@@ -153,34 +258,13 @@ export default function ProductsPage() {
       description: p.Description || "",
       price: p.Price.toString(),
       stock: p.Stock.toString(),
-      image: p.Image || ""
+      profitMultiplier: p.ProfitMultiplier?.toString() || "1.0",
+      imageFront: null,
+      imageBack: null,
+      selectedMaterials: p.materials?.map(m => ({ id: m.ID, quantity: m.Quantity })) || [],
+      selectedModels: p.models?.map(m => ({ id: m.ID, quantity: m.Quantity })) || []
     })
     setIsEditOpen(true)
-  }
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedProduct) return
-    setUpdating(true)
-    try {
-      const response = await fetch(`http://localhost:3001/api/products/${selectedProduct.ID}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...editFormData,
-          name: toTitleCase(editFormData.name)
-        })
-      })
-      if (response.ok) {
-        toast.success(t("common.notifications.updated"))
-        setIsEditOpen(false)
-        fetchData()
-      }
-    } catch (error) {
-      console.error("Failed to update product:", error)
-    } finally {
-      setUpdating(false)
-    }
   }
 
   return (
@@ -193,7 +277,7 @@ export default function ProductsPage() {
 
       <div className="grid gap-8 lg:grid-cols-12">
         {/* Left Column: Form */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-5 space-y-6">
           <Card className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
             <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
               <div className="space-y-1.5">
@@ -220,17 +304,30 @@ export default function ProductsPage() {
             )}>
               <div className="overflow-hidden">
                 <CardContent className="pb-6">
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.name")}</Label>
-                      <Input
-                        placeholder={t("products.name")}
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                        className="bg-background/40 border-muted/30 h-10"
-                      />
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.name")}</Label>
+                        <Input
+                          placeholder={t("products.name")}
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          required
+                          className="bg-background/40 border-muted/30 h-10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.profit_multiplier")}</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={formData.profitMultiplier}
+                          onChange={(e) => setFormData({ ...formData, profitMultiplier: e.target.value })}
+                          className="bg-background/40 border-muted/30 h-10"
+                        />
+                      </div>
                     </div>
+
                     <div className="space-y-2">
                       <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.description")}</Label>
                       <Input
@@ -240,12 +337,12 @@ export default function ProductsPage() {
                         className="bg-background/40 border-muted/30 h-10"
                       />
                     </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.price")}</Label>
                         <Input
                           type="number"
-                          placeholder="0"
                           value={formData.price}
                           onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                           required
@@ -256,7 +353,6 @@ export default function ProductsPage() {
                         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.stock")}</Label>
                         <Input
                           type="number"
-                          placeholder="0"
                           value={formData.stock}
                           onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
                           required
@@ -264,18 +360,171 @@ export default function ProductsPage() {
                         />
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.image")}</Label>
-                      <Input
-                        placeholder="https://..."
-                        value={formData.image}
-                        onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                        className="bg-background/40 border-muted/30 h-10"
-                      />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.image_front")}</Label>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setFormData({ ...formData, imageFront: e.target.files?.[0] || null })}
+                          className="bg-background/40 border-muted/30 h-10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.image_back")}</Label>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setFormData({ ...formData, imageBack: e.target.files?.[0] || null })}
+                          className="bg-background/40 border-muted/30 h-10"
+                        />
+                      </div>
                     </div>
+
+                    {/* Material Selection */}
+                    <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
+                      <Label className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                        <Layers className="h-3 w-3 text-primary" />
+                        {t("products.select_materials")}
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full justify-between h-9 text-xs">
+                            {t("products.add_material")}
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[250px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder={t("common.search")} />
+                            <CommandList>
+                              <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                              <CommandGroup>
+                                {materials.map(m => (
+                                  <CommandItem
+                                    key={m.ID}
+                                    onSelect={() => {
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        selectedMaterials: [...prev.selectedMaterials, { id: m.ID, quantity: 1 }]
+                                      }))
+                                    }}
+                                  >
+                                    {m.Name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      
+                      <div className="space-y-2">
+                        {formData.selectedMaterials.map((sm, idx) => (
+                          <div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10">
+                            <span className="text-xs font-medium flex-1 truncate">
+                              {materials.find(m => m.ID === sm.id)?.Name}
+                            </span>
+                            <Input 
+                              type="number" 
+                              className="w-16 h-7 text-xs px-1" 
+                              value={sm.quantity}
+                              onChange={(e) => {
+                                const newMats = [...formData.selectedMaterials]
+                                newMats[idx].quantity = parseInt(e.target.value) || 1
+                                setFormData({ ...formData, selectedMaterials: newMats })
+                              }}
+                            />
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7 text-red-500"
+                              onClick={() => {
+                                const newMats = formData.selectedMaterials.filter((_, i) => i !== idx)
+                                setFormData({ ...formData, selectedMaterials: newMats })
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Model Selection */}
+                    <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
+                      <Label className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                        <Box className="h-3 w-3 text-primary" />
+                        {t("products.select_models")}
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full justify-between h-9 text-xs">
+                            {t("products.add_model")}
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[250px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder={t("common.search")} />
+                            <CommandList>
+                              <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                              <CommandGroup>
+                                {models.map(m => (
+                                  <CommandItem
+                                    key={m.ID}
+                                    onSelect={() => {
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        selectedModels: [...prev.selectedModels, { id: m.ID, quantity: 1 }]
+                                      }))
+                                    }}
+                                  >
+                                    {m.Name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      
+                      <div className="space-y-2">
+                        {formData.selectedModels.map((sm, idx) => (
+                          <div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10">
+                            <span className="text-xs font-medium flex-1 truncate">
+                              {models.find(m => m.ID === sm.id)?.Name}
+                            </span>
+                            <Input 
+                              type="number" 
+                              className="w-16 h-7 text-xs px-1" 
+                              value={sm.quantity}
+                              onChange={(e) => {
+                                const newMods = [...formData.selectedModels]
+                                newMods[idx].quantity = parseInt(e.target.value) || 1
+                                setFormData({ ...formData, selectedModels: newMods })
+                              }}
+                            />
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7 text-red-500"
+                              onClick={() => {
+                                const newMods = formData.selectedModels.filter((_, i) => i !== idx)
+                                setFormData({ ...formData, selectedModels: newMods })
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     <Button 
                       type="submit" 
-                      className="w-full h-10 font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all active:scale-[0.98]" 
+                      className="w-full h-11 font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all active:scale-[0.98]" 
                       disabled={submitting}
                     >
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
@@ -289,7 +538,7 @@ export default function ProductsPage() {
         </div>
 
         {/* Right Column: List (Table) */}
-        <div className="lg:col-span-8">
+        <div className="lg:col-span-7">
           <Card className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg h-full flex flex-col overflow-hidden transition-all duration-300">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
@@ -332,21 +581,37 @@ export default function ProductsPage() {
                        </TableRow>
                      ) : (
                        products.map((p) => (
-                         <TableRow key={p.ID} className="hover:bg-muted/5 transition-colors border-muted/10 h-16">
+                         <TableRow key={p.ID} className="hover:bg-muted/5 transition-colors border-muted/10 h-20">
                            <TableCell className="px-6">
                               <div className="flex items-center gap-3">
-                                {p.Image ? (
-                                  <img src={p.Image} alt={p.Name} className="w-10 h-10 rounded-md object-cover border border-muted/20" />
-                                ) : (
-                                  <div className="w-10 h-10 rounded-md bg-muted/20 flex items-center justify-center border border-muted/20 text-muted-foreground">
-                                    <ImageIcon className="h-5 w-5" />
+                                <div className="flex -space-x-4">
+                                  {p.ImageFront ? (
+                                    <img src={`http://localhost:3001/${p.ImageFront}`} alt={p.Name} className="w-12 h-12 rounded-lg object-cover border-2 border-background shadow-md" />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded-lg bg-muted/20 flex items-center justify-center border-2 border-background text-muted-foreground shadow-md">
+                                      <ImageIcon className="h-5 w-5" />
+                                    </div>
+                                  )}
+                                  {p.ImageBack && (
+                                    <img src={`http://localhost:3001/${p.ImageBack}`} alt={p.Name} className="w-12 h-12 rounded-lg object-cover border-2 border-background shadow-md" />
+                                  )}
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-sm">{p.Name}</span>
+                                  <div className="flex gap-1 items-center mt-1">
+                                    {p.materials?.length > 0 && <span className="text-[10px] bg-primary/10 text-primary px-1.5 rounded-full border border-primary/20">{p.materials.length} {t("nav.materials")}</span>}
+                                    {p.models?.length > 0 && <span className="text-[10px] bg-blue-500/10 text-blue-500 px-1.5 rounded-full border border-blue-500/20">{p.models.length} {t("nav.models")}</span>}
                                   </div>
-                                )}
-                                <span className="font-medium">{p.Name}</span>
+                                </div>
                               </div>
                            </TableCell>
-                           <TableCell className="text-center font-bold">{p.Price}</TableCell>
-                           <TableCell className="text-center">{p.Stock}</TableCell>
+                           <TableCell className="text-center">
+                              <div className="flex flex-col items-center">
+                                <span className="font-black text-lg">{p.Price}₺</span>
+                                {p.ProfitMultiplier && <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><TrendingUp className="h-2 w-2" /> x{p.ProfitMultiplier}</span>}
+                              </div>
+                           </TableCell>
+                           <TableCell className="text-center font-semibold">{p.Stock}</TableCell>
                            <TableCell className="px-6 text-right">
                              <DropdownMenu>
                                <DropdownMenuTrigger asChild>
@@ -355,10 +620,6 @@ export default function ProductsPage() {
                                  </Button>
                                </DropdownMenuTrigger>
                                <DropdownMenuContent align="end" className="w-40">
-                                 <DropdownMenuItem onClick={() => { setSelectedProduct(p); setIsDetailOpen(true); }} className="cursor-pointer">
-                                   <Eye className="mr-2 h-4 w-4" />
-                                   {t("common.details")}
-                                 </DropdownMenuItem>
                                  <DropdownMenuItem onClick={() => handleEditClick(p)} className="cursor-pointer">
                                    <Edit3 className="mr-2 h-4 w-4" />
                                    {t("common.edit")}
@@ -381,65 +642,36 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Detail Dialog */}
-      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-md bg-background/95 backdrop-blur-xl border-muted/30">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-              <ShoppingBag className="h-6 w-6 text-primary" />
-              {selectedProduct?.Name}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedProduct?.Description || "Açıklama bulunmuyor."}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-6 py-4">
-             {selectedProduct?.Image && (
-               <img src={selectedProduct.Image} alt={selectedProduct.Name} className="w-full h-48 object-cover rounded-xl border border-muted/30 shadow-md" />
-             )}
-            <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-muted/30">
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("products.price")}</p>
-                <div className="flex items-center gap-1 text-sm font-semibold">
-                  <DollarSign className="h-3 w-3 text-primary" />
-                  {selectedProduct?.Price}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("products.stock")}</p>
-                <div className="flex items-center gap-1 text-sm font-semibold">
-                  <Package className="h-3 w-3 text-primary" />
-                  {selectedProduct?.Stock}
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setIsDetailOpen(false)} className="h-8 px-6">{t("common.close")}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-md bg-background/95 backdrop-blur-xl border-muted/30">
+        <DialogContent className="max-w-2xl bg-background/95 backdrop-blur-xl border-muted/30 max-h-[90vh] overflow-y-auto scrollbar-none">
           <DialogHeader>
-            <DialogTitle>{t("common.edit")}</DialogTitle>
-            <DialogDescription>
-              Ürün bilgilerini güncelleyin.
-            </DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit3 className="h-5 w-5 text-primary" />
+              {t("common.edit")}
+            </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleUpdate} className="space-y-5 py-4">
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold">{t("products.name")}</Label>
-              <Input
-                value={editFormData.name}
-                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                required
-              />
+          <form onSubmit={handleUpdate} className="space-y-6 py-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">{t("products.name")}</Label>
+                <Input
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">{t("products.profit_multiplier")}</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={editFormData.profitMultiplier}
+                  onChange={(e) => setEditFormData({ ...editFormData, profitMultiplier: e.target.value })}
+                />
+              </div>
             </div>
+
             <div className="space-y-2">
               <Label className="text-xs font-semibold">{t("products.description")}</Label>
               <Input
@@ -447,6 +679,7 @@ export default function ProductsPage() {
                 onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
               />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs font-semibold">{t("products.price")}</Label>
@@ -467,13 +700,168 @@ export default function ProductsPage() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold">{t("products.image")}</Label>
-              <Input
-                value={editFormData.image}
-                onChange={(e) => setEditFormData({ ...editFormData, image: e.target.value })}
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">{t("products.image_front")}</Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setEditFormData({ ...editFormData, imageFront: e.target.files?.[0] || null })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">{t("products.image_back")}</Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setEditFormData({ ...editFormData, imageBack: e.target.files?.[0] || null })}
+                />
+              </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Material Selection in Edit */}
+              <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
+                <Label className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                  <Layers className="h-3 w-3 text-primary" />
+                  {t("products.select_materials")}
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between h-9 text-xs">
+                      {t("products.add_material")}
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0">
+                    <Command>
+                      <CommandInput placeholder={t("common.search")} />
+                      <CommandList>
+                        <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                        <CommandGroup>
+                          {materials.map(m => (
+                            <CommandItem
+                              key={m.ID}
+                              onSelect={() => {
+                                setEditFormData(prev => ({
+                                  ...prev,
+                                  selectedMaterials: [...prev.selectedMaterials, { id: m.ID, quantity: 1 }]
+                                }))
+                              }}
+                            >
+                              {m.Name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                
+                <div className="space-y-2 max-h-[150px] overflow-y-auto scrollbar-none">
+                  {editFormData.selectedMaterials.map((sm, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10">
+                      <span className="text-[10px] font-medium flex-1 truncate">
+                        {materials.find(m => m.ID === sm.id)?.Name}
+                      </span>
+                      <Input 
+                        type="number" 
+                        className="w-12 h-6 text-[10px] px-1" 
+                        value={sm.quantity}
+                        onChange={(e) => {
+                          const newMats = [...editFormData.selectedMaterials]
+                          newMats[idx].quantity = parseInt(e.target.value) || 1
+                          setEditFormData({ ...editFormData, selectedMaterials: newMats })
+                        }}
+                      />
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6 text-red-500"
+                        onClick={() => {
+                          const newMats = editFormData.selectedMaterials.filter((_, i) => i !== idx)
+                          setEditFormData({ ...editFormData, selectedMaterials: newMats })
+                        }}
+                      >
+                        <X className="h-2 w-2" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Model Selection in Edit */}
+              <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
+                <Label className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                  <Box className="h-3 w-3 text-primary" />
+                  {t("products.select_models")}
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between h-9 text-xs">
+                      {t("products.add_model")}
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0">
+                    <Command>
+                      <CommandInput placeholder={t("common.search")} />
+                      <CommandList>
+                        <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                        <CommandGroup>
+                          {models.map(m => (
+                            <CommandItem
+                              key={m.ID}
+                              onSelect={() => {
+                                setEditFormData(prev => ({
+                                  ...prev,
+                                  selectedModels: [...prev.selectedModels, { id: m.ID, quantity: 1 }]
+                                }))
+                              }}
+                            >
+                              {m.Name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                
+                <div className="space-y-2 max-h-[150px] overflow-y-auto scrollbar-none">
+                  {editFormData.selectedModels.map((sm, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10">
+                      <span className="text-[10px] font-medium flex-1 truncate">
+                        {models.find(m => m.ID === sm.id)?.Name}
+                      </span>
+                      <Input 
+                        type="number" 
+                        className="w-12 h-6 text-[10px] px-1" 
+                        value={sm.quantity}
+                        onChange={(e) => {
+                          const newMods = [...editFormData.selectedModels]
+                          newMods[idx].quantity = parseInt(e.target.value) || 1
+                          setEditFormData({ ...editFormData, selectedModels: newMods })
+                        }}
+                      />
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6 text-red-500"
+                        onClick={() => {
+                          const newMods = editFormData.selectedModels.filter((_, i) => i !== idx)
+                          setEditFormData({ ...editFormData, selectedModels: newMods })
+                        }}
+                      >
+                        <X className="h-2 w-2" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>{t("common.cancel")}</Button>
               <Button type="submit" disabled={updating}>

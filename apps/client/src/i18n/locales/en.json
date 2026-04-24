@@ -19,6 +19,7 @@
     "select_category": "Select Category...",
     "search_category": "Search category...",
     "category_not_found": "Category not found.",
+    "no_category": "No Category",
     "add_category": "Add Category",
     "notifications": {
       "added": "Added successfully",
@@ -163,6 +164,29 @@
     "table": {
       "unit_price": "Unit Price",
       "current": "Current"
+    }
+  },
+  "products": {
+    "new_record": "Add Product",
+    "new_record_desc": "Create a new product record.",
+    "name": "Product Name",
+    "description": "Description",
+    "price": "Price",
+    "stock": "Stock",
+    "image": "Image URL",
+    "image_front": "Front Image",
+    "image_back": "Back Image",
+    "profit_multiplier": "Profit Multiplier",
+    "select_materials": "Materials",
+    "add_material": "Add Material",
+    "select_models": "Models",
+    "add_model": "Add Model",
+    "inventory": "Product Inventory",
+    "inventory_desc": "Manage your products.",
+    "table": {
+      "name": "Product",
+      "price": "Price",
+      "stock": "Stock"
     }
   }
 }
