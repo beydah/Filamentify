@@ -1,31 +1,57 @@
 # Contributing to Filamentify
 
-First off, thank you for considering contributing to Filamentify! It's people like you that make the 3D printing community better.
+First off, thank you for considering contributing to Filamentify! It's community members like you that make 3D printing management easier for everyone.
 
-## How Can I Contribute?
+## 🛠️ Development Environment
 
-### Reporting Bugs
-- Use the **Issue Tracker** to report bugs.
-- Include a clear title and description.
-- Provide as much relevant information as possible (logs, screenshots, steps to reproduce).
+### Prerequisites
+- **Node.js**: v18.0.0 or higher
+- **npm**: v9.0.0 or higher
+- **Git**: For version control
 
-### Suggesting Enhancements
-- Open an issue with the tag `enhancement`.
-- Describe the feature and why it would be useful.
+### Setup
+1. **Fork the repository** on GitHub.
+2. **Clone your fork** locally:
+   ```bash
+   git clone https://github.com/beydah/Filamentify.git
+   ```
+3. **Install dependencies** in both apps:
+   ```bash
+   cd apps/server && npm install
+   cd ../client && npm install
+   ```
 
-### Pull Requests
-1. Fork the repo and create your branch from `main`.
-2. If you've added code that should be tested, add tests.
-3. If you've changed APIs, update the documentation.
-4. Ensure the test suite passes.
-5. Make sure your code lints.
+## 🏗️ Technical Stack & Standards
 
-## Style Guide
+We use a modern stack. Please ensure your contributions align with these technologies:
 
-- We use **TypeScript** for both frontend and backend.
-- Follow the existing architectural patterns (monorepo structure).
-- Use **Prettier** and **ESLint** configurations provided in the workspace.
+- **Frontend**: React 19, Vite, Tailwind CSS 4.0, Shadcn/UI.
+- **Backend**: Node.js, Express, better-sqlite3.
+- **Languages**: TypeScript (Strict mode enabled).
+- **Icons**: Lucide React.
+- **State Management**: React Hooks (Zustand for global state if applicable).
 
-## Communication
+### Coding Standards
+- **Component Pattern**: Use functional components with hooks.
+- **Styling**: Use Tailwind 4.0 utility classes. Avoid inline styles or custom CSS unless necessary.
+- **Localization**: All UI strings must be added to `apps/client/src/i18n/locales/` for both `en` and `tr`.
+- **Database**: Schema changes must be reflected in `apps/server/src/db.ts` and `docs/DATABASE_SCHEMA.md`.
 
-If you have questions, feel free to open a discussion or contact the maintainers directly.
+## 🔄 Contribution Workflow
+
+1. **Create a branch**: `git checkout -b feat/your-feature-name` or `fix/bug-description`.
+2. **Implement changes**: Follow the style guide and ensure code is clean.
+3. **Local Testing**: Verify that both client and server run without errors.
+4. **Commit**: Use descriptive commit messages (e.g., `feat: add product management module`).
+5. **Push & PR**: Push to your fork and open a Pull Request to the `main` branch.
+
+## 🐞 Reporting Issues
+
+- Use the [Issue Template](./ISSUE_TEMPLATE.md) for bug reports.
+- Be specific about the OS and browser if the issue is UI-related.
+- Include logs from the server console if applicable.
+
+## 💬 Community
+
+Questions? Feel free to open a **GitHub Discussion** or reach out to the maintainers. We're happy to help!
+
