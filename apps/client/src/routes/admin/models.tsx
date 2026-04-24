@@ -254,7 +254,11 @@ export default function ModelsPage() {
         fetchData()
       } else {
         const error = await response.json()
-        toast.error(error.error || t("common.notifications.cat_delete_error"))
+        if (error.error === "Category is in use and cannot be deleted") {
+          toast.error(t("common.notifications.cat_in_use"))
+        } else {
+          toast.error(error.error || t("common.notifications.cat_delete_error"))
+        }
       }
     } catch (error) {
       console.error("Failed to delete category:", error)
@@ -759,23 +763,20 @@ export default function ModelsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-40">
-                              <DropdownMenuLabel className="text-xs">{t("filament.actions.title")}</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => { setDetailModel(model); setIsDetailOpen(true); }}>
+                              <DropdownMenuItem onClick={() => { setDetailModel(model); setIsDetailOpen(true); }} className="cursor-pointer">
                                 <Eye className="mr-2 h-4 w-4" />
                                 {t("common.details")}
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEditClick(model)}>
+                              <DropdownMenuItem onClick={() => handleEditClick(model)} className="cursor-pointer">
                                 <Edit3 className="mr-2 h-4 w-4" />
-                                {t("filament.actions.edit")}
+                                {t("common.edit")}
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => handleDeleteModel(model.ID)}
                                 className="text-red-500 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20 cursor-pointer"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                {t("filament.actions.delete")}
+                                {t("common.delete")}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

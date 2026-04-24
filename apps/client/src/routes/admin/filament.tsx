@@ -147,6 +147,7 @@ export default function FilamentPage() {
   const [editFormData, setEditFormData] = React.useState({
     price: "",
     gram: "",
+    categoryId: "",
     purchaseDate: new Date(),
   })
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false)
@@ -224,7 +225,11 @@ export default function FilamentPage() {
         fetchData()
       } else {
         const error = await response.json()
-        toast.error(error.error || t("common.notifications.cat_delete_error"))
+        if (error.error === "Category is in use and cannot be deleted") {
+          toast.error(t("common.notifications.cat_in_use"))
+        } else {
+          toast.error(error.error || t("common.notifications.cat_delete_error"))
+        }
       }
     } catch (error) {
       console.error("Failed to delete category:", error)
@@ -295,6 +300,7 @@ export default function FilamentPage() {
     setEditFormData({
       price: filament.Price.toString(),
       gram: filament.Gram.toString(),
+      categoryId: filament.CategoryID.toString(),
       purchaseDate: parseISO(filament.PurchaseDate),
     })
     setUpdateSuccess(false)
@@ -310,6 +316,7 @@ export default function FilamentPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          categoryId: parseInt(editFormData.categoryId),
           price: parseInt(editFormData.price),
           gram: parseInt(editFormData.gram),
           purchaseDate: editFormData.purchaseDate.toISOString(),
@@ -713,10 +720,12 @@ export default function FilamentPage() {
                                   <Filter className={cn("h-3 w-3", filterColor !== "all" && "text-primary fill-primary")} />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="center" className="w-48 max-h-60 overflow-y-auto">
-                                <DropdownMenuItem onClick={() => setFilterColor("all")}>{t("common.all")}</DropdownMenuItem>
-                                <div className="p-2 flex flex-wrap gap-2 justify-center">
-                                  {uniqueColors.slice(0, 5).map(color => (
+                              <DropdownMenuContent align="center" className="w-12 min-w-0 p-2">
+                                <DropdownMenuItem onClick={() => setFilterColor("all")} className="justify-center px-0 mb-1">
+                                  <div className="w-6 h-6 rounded-full border-2 border-dashed flex items-center justify-center text-[8px] font-bold">X</div>
+                                </DropdownMenuItem>
+                                <div className="flex flex-col gap-2 items-center">
+                                  {uniqueColors.map(color => (
                                     <button 
                                       key={color} 
                                       onClick={() => { setFilterColor(color); setOpenColor(false); }}
@@ -829,23 +838,20 @@ export default function FilamentPage() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-40">
-                                  <DropdownMenuLabel className="text-xs">{t("filament.actions.title")}</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => { setDetailFilament(filament); setIsDetailOpen(true); }}>
+                                  <DropdownMenuItem onClick={() => { setDetailFilament(filament); setIsDetailOpen(true); }} className="cursor-pointer">
                                     <Eye className="mr-2 h-4 w-4" />
                                     {t("common.details")}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleEditClick(filament)}>
+                                  <DropdownMenuItem onClick={() => handleEditClick(filament)} className="cursor-pointer">
                                     <Edit3 className="mr-2 h-4 w-4" />
-                                    {t("filament.actions.edit")}
+                                    {t("common.edit")}
                                   </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
                                   <DropdownMenuItem 
                                     onClick={() => handleDeleteFilament(filament.ID)}
-                                    className="text-white bg-destructive hover:bg-destructive/90 focus:bg-destructive/90 focus:text-white"
+                                    className="text-red-500 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20 cursor-pointer"
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" />
-                                    {t("filament.actions.delete")}
+                                    {t("common.delete")}
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
@@ -887,30 +893,63 @@ export default function FilamentPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="edit-price" className="text-xs tracking-wider text-muted-foreground font-semibold">{t("filament.price")}</Label>
-                <Input
-                  id="edit-price"
-                  type="number"
-                  step="100"
-                  min="100"
-                  max="2500"
-                  value={editFormData.price}
-                  onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })}
-                  required
-                />
+                <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("filament.category")}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between font-normal h-10 bg-background/40">
+                      {categories.find(c => c.ID.toString() === editFormData.categoryId)?.Name || t("common.select")}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder={t("common.search")} />
+                      <CommandList>
+                        <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                        <CommandGroup>
+                          {categories.map((cat) => (
+                            <CommandItem
+                              key={cat.ID}
+                              onSelect={() => setEditFormData({ ...editFormData, categoryId: cat.ID.toString() })}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", editFormData.categoryId === cat.ID.toString() ? "opacity-100" : "opacity-0")} />
+                              {cat.Name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-gram" className="text-xs tracking-wider text-muted-foreground font-semibold">{t("filament.gram")}</Label>
-                <Input
-                  id="edit-gram"
-                  type="number"
-                  step="100"
-                  min="100"
-                  max="5000"
-                  value={editFormData.gram}
-                  onChange={(e) => setEditFormData({ ...editFormData, gram: e.target.value })}
-                  required
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-price" className="text-xs tracking-wider text-muted-foreground font-semibold">{t("filament.price")}</Label>
+                  <Input
+                    id="edit-price"
+                    type="number"
+                    step="100"
+                    min="100"
+                    max="2500"
+                    value={editFormData.price}
+                    onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-gram" className="text-xs tracking-wider text-muted-foreground font-semibold">{t("filament.gram")}</Label>
+                  <Input
+                    id="edit-gram"
+                    type="number"
+                    step="100"
+                    min="100"
+                    max="5000"
+                    value={editFormData.gram}
+                    onChange={(e) => setEditFormData({ ...editFormData, gram: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-xs tracking-wider text-muted-foreground font-semibold flex items-center gap-1">

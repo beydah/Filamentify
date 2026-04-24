@@ -58,6 +58,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/ui/controls/dialog"
+import { Calendar } from "@/ui/controls/calendar"
 import { toast } from "sonner"
 
 interface MaterialCategory {
@@ -98,7 +99,8 @@ export default function MaterialsPage() {
     categoryId: "",
     quantity: "100",
     totalPrice: "100",
-    link: ""
+    link: "",
+    purchaseDate: new Date()
   })
 
   const [isDetailOpen, setIsDetailOpen] = React.useState(false)
@@ -109,7 +111,8 @@ export default function MaterialsPage() {
     categoryId: "",
     quantity: "",
     totalPrice: "",
-    link: ""
+    link: "",
+    purchaseDate: new Date()
   })
   const [updating, setUpdating] = React.useState(false)
 
@@ -167,7 +170,11 @@ export default function MaterialsPage() {
         fetchData()
       } else {
         const error = await response.json()
-        toast.error(error.error || t("common.notifications.cat_delete_error"))
+        if (error.error === "Category is in use and cannot be deleted") {
+          toast.error(t("common.notifications.cat_in_use"))
+        } else {
+          toast.error(error.error || t("common.notifications.cat_delete_error"))
+        }
       }
     } catch (error) {
       console.error("Failed to delete category:", error)
@@ -186,7 +193,8 @@ export default function MaterialsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          name: toTitleCase(formData.name)
+          name: toTitleCase(formData.name),
+          purchaseDate: formData.purchaseDate.toISOString()
         })
       })
       if (response.ok) {
@@ -196,7 +204,8 @@ export default function MaterialsPage() {
           categoryId: "",
           quantity: "100",
           totalPrice: "100",
-          link: ""
+          link: "",
+          purchaseDate: new Date()
         })
         fetchData()
       }
@@ -228,7 +237,8 @@ export default function MaterialsPage() {
       categoryId: m.CategoryID.toString(),
       quantity: m.Quantity.toString(),
       totalPrice: m.TotalPrice.toString(),
-      link: m.Link || ""
+      link: m.Link || "",
+      purchaseDate: m.PurchaseDate ? new Date(m.PurchaseDate) : new Date()
     })
     setIsEditOpen(true)
   }
@@ -243,7 +253,8 @@ export default function MaterialsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...editFormData,
-          name: toTitleCase(editFormData.name)
+          name: toTitleCase(editFormData.name),
+          purchaseDate: editFormData.purchaseDate.toISOString()
         })
       })
       if (response.ok) {
@@ -411,6 +422,34 @@ export default function MaterialsPage() {
                           className="bg-background/40 border-muted/30 transition-all"
                         />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+                        {t("materials.purchase_date")}
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal bg-background/40 border-muted/30 h-10",
+                              !formData.purchaseDate && "text-muted-foreground"
+                            )}
+                          >
+                            {formData.purchaseDate ? formData.purchaseDate.toLocaleDateString('tr-TR') : <span>{t("materials.select_date")}</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={formData.purchaseDate}
+                            onSelect={(date) => date && setFormData({ ...formData, purchaseDate: date })}
+                            disabled={(date) => date > new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
 
                     <div className="space-y-2">
@@ -732,6 +771,25 @@ export default function MaterialsPage() {
                   required
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold">{t("materials.purchase_date")}</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start font-normal h-10">
+                    {editFormData.purchaseDate ? editFormData.purchaseDate.toLocaleDateString('tr-TR') : <span>{t("materials.select_date")}</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={editFormData.purchaseDate}
+                    onSelect={(date) => date && setEditFormData({ ...editFormData, purchaseDate: date })}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-semibold">{t("materials.link")}</Label>

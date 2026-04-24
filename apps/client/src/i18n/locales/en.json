@@ -25,7 +25,8 @@
       "deleted": "Deleted",
       "delete_error": "Failed to delete",
       "cat_deleted": "Category deleted",
-      "cat_delete_error": "Failed to delete category"
+      "cat_delete_error": "Failed to delete category",
+      "cat_in_use": "Category is in use and cannot be deleted"
     }
   },
   "nav": {
@@ -57,6 +58,7 @@
     "new_record": "Add Filament",
     "new_record_desc": "Create a stock record.",
     "name": "Name",
+    "category": "Category",
     "name_placeholder": "Filament Name (e.g., Black PLA)",
     "color_selection": "Color Selection",
     "price": "Price",
@@ -69,6 +71,7 @@
     "total": "Total",
     "table": {
       "name": "Filament",
+      "category": "Category",
       "color": "Color",
       "price": "Price",
       "available": "Available",
@@ -104,6 +107,7 @@
     "new_record": "Add Model",
     "new_record_desc": "Save a new model.",
     "name": "Model Name",
+    "category": "Category",
     "name_placeholder": "e.g., Iron Man Bust",
     "link": "Model Link",
     "link_placeholder": "Thingiverse, Printables, etc.",
@@ -154,6 +158,8 @@
     "categories_desc": "Group your materials.",
     "inventory": "Material List",
     "inventory_desc": "All registered materials.",
+    "purchase_date": "Purchase Date",
+    "select_date": "Select date",
     "table": {
       "unit_price": "Unit Price",
       "current": "Current"
