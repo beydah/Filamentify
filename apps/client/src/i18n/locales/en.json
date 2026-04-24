@@ -110,8 +110,8 @@
     "name": "Model Name",
     "category": "Category",
     "name_placeholder": "e.g., Iron Man Bust",
-    "link": "Model Link",
-    "link_placeholder": "Thingiverse, Printables, etc.",
+    "link": "Link",
+    "link_placeholder": "https://...",
     "gram": "Weight (gr)",
     "gram_placeholder": "Weight",
     "piece_count": "Piece Count",
@@ -187,6 +187,12 @@
       "name": "Product",
       "price": "Price",
       "stock": "Stock"
-    }
+    },
+    "sub_product": "Sub-product",
+    "parent_product": "Parent Product",
+    "select_filaments": "Select Filaments",
+    "add_filament": "Add Filament",
+    "categories": "Product Categories",
+    "categories_desc": "Group your products."
   }
 }

@@ -19,7 +19,8 @@ import {
   TrendingUp,
   X,
   Check,
-  ChevronsUpDown
+  ChevronsUpDown,
+  Tag
 } from "lucide-react"
 import { Button } from "@/ui/controls/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/controls/card"
@@ -79,6 +80,16 @@ interface ProductDetail {
   Quantity: number
 }
 
+interface Filament {
+  ID: number
+  Name: string
+}
+
+interface ProductCategory {
+  ID: number
+  Name: string
+}
+
 interface Product {
   ID: number
   Name: string
@@ -88,8 +99,12 @@ interface Product {
   ImageFront: string
   ImageBack: string
   ProfitMultiplier: number
+  ParentID?: number
+  CategoryID?: number
+  CategoryName?: string
   materials: ProductDetail[]
   models: ProductDetail[]
+  filaments: ProductDetail[]
 }
 
 export default function ProductsPage() {
@@ -98,6 +113,13 @@ export default function ProductsPage() {
   const [products, setProducts] = React.useState<Product[]>([])
   const [materials, setMaterials] = React.useState<Material[]>([])
   const [models, setModels] = React.useState<Model[]>([])
+  const [filaments, setFilaments] = React.useState<Filament[]>([])
+  const [categories, setCategories] = React.useState<ProductCategory[]>([])
+  const [isCategoriesOpen, setIsCategoriesOpen] = React.useState(false)
+  const [newCategory, setNewCategory] = React.useState("")
+  const [addingCategory, setAddingCategory] = React.useState(false)
+  const [deletingCategoryId, setDeletingCategoryId] = React.useState<number | null>(null)
+  const [isSubProduct, setIsSubProduct] = React.useState(false)
   const [loading, setLoading] = React.useState(true)
   const [submitting, setSubmitting] = React.useState(false)
 
@@ -107,11 +129,14 @@ export default function ProductsPage() {
     description: "",
     price: "0",
     stock: "0",
-    profitMultiplier: "1.0",
+    profitMultiplier: "1.5",
+    parentId: "",
+    categoryId: "",
     imageFront: null as File | null,
     imageBack: null as File | null,
     selectedMaterials: [] as { id: number, quantity: number }[],
-    selectedModels: [] as { id: number, quantity: number }[]
+    selectedModels: [] as { id: number, quantity: number }[],
+    selectedFilaments: [] as { id: number, quantity: number }[]
   })
 
   // Edit State
@@ -123,30 +148,39 @@ export default function ProductsPage() {
     description: "",
     price: "0",
     stock: "0",
-    profitMultiplier: "1.0",
+    profitMultiplier: "1.5",
+    parentId: "",
+    categoryId: "",
     imageFront: null as File | null,
     imageBack: null as File | null,
     selectedMaterials: [] as { id: number, quantity: number }[],
-    selectedModels: [] as { id: number, quantity: number }[]
+    selectedModels: [] as { id: number, quantity: number }[],
+    selectedFilaments: [] as { id: number, quantity: number }[]
   })
   const [updating, setUpdating] = React.useState(false)
 
   // Fetch Data
   const fetchData = React.useCallback(async () => {
     try {
-      const [prodRes, matRes, modRes] = await Promise.all([
+      const [prodRes, matRes, modRes, filRes, catRes] = await Promise.all([
         fetch("http://localhost:3001/api/products"),
         fetch("http://localhost:3001/api/materials"),
-        fetch("http://localhost:3001/api/models")
+        fetch("http://localhost:3001/api/models"),
+        fetch("http://localhost:3001/api/filaments"),
+        fetch("http://localhost:3001/api/product-categories")
       ])
-      const [prodData, matData, modData] = await Promise.all([
+      const [prodData, matData, modData, filData, catData] = await Promise.all([
         prodRes.json(),
         matRes.json(),
-        modRes.json()
+        modRes.json(),
+        filRes.json(),
+        catRes.json()
       ])
       setProducts(prodData)
       setMaterials(matData)
       setModels(modData)
+      setFilaments(filData)
+      setCategories(catData)
     } catch (error) {
       console.error("Failed to fetch data:", error)
     } finally {
@@ -170,9 +204,12 @@ export default function ProductsPage() {
     body.append("stock", formData.stock)
     body.append("profitMultiplier", formData.profitMultiplier)
     if (formData.imageFront) body.append("imageFront", formData.imageFront)
-    if (formData.imageBack) body.append("imageBack", formData.imageBack)
+    if (formData.imageBack) body.append("imageBack", formData.imageBack || "")
     body.append("materials", JSON.stringify(formData.selectedMaterials))
     body.append("models", JSON.stringify(formData.selectedModels))
+    body.append("filaments", JSON.stringify(formData.selectedFilaments))
+    body.append("parentId", formData.parentId)
+    body.append("categoryId", formData.categoryId)
 
     try {
       const response = await fetch("http://localhost:3001/api/products", {
@@ -186,16 +223,21 @@ export default function ProductsPage() {
           description: "",
           price: "0",
           stock: "0",
-          profitMultiplier: "1.0",
+          profitMultiplier: "1.5",
+          parentId: "",
+          categoryId: "",
           imageFront: null,
           imageBack: null,
           selectedMaterials: [],
-          selectedModels: []
+          selectedModels: [],
+          selectedFilaments: []
         })
+        setIsSubProduct(false)
         fetchData()
       }
     } catch (error) {
-      console.error("Failed to add product:", error)
+      console.error(error)
+      toast.error(t("common.notifications.add_error"))
     } finally {
       setSubmitting(false)
     }
@@ -203,7 +245,6 @@ export default function ProductsPage() {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedProduct) return
     setUpdating(true)
 
     const body = new FormData()
@@ -212,13 +253,16 @@ export default function ProductsPage() {
     body.append("price", editFormData.price)
     body.append("stock", editFormData.stock)
     body.append("profitMultiplier", editFormData.profitMultiplier)
-    if (editFormData.imageFront) body.append("imageFront", editFormData.imageFront)
-    if (editFormData.imageBack) body.append("imageBack", editFormData.imageBack)
+    body.append("imageFront", editFormData.imageFront || "")
+    body.append("imageBack", editFormData.imageBack || "")
     body.append("materials", JSON.stringify(editFormData.selectedMaterials))
     body.append("models", JSON.stringify(editFormData.selectedModels))
+    body.append("filaments", JSON.stringify(editFormData.selectedFilaments))
+    body.append("parentId", editFormData.parentId)
+    body.append("categoryId", editFormData.categoryId)
 
     try {
-      const response = await fetch(`http://localhost:3001/api/products/${selectedProduct.ID}`, {
+      const response = await fetch(`http://localhost:3001/api/products/${selectedProduct?.ID}`, {
         method: "PATCH",
         body
       })
@@ -228,9 +272,55 @@ export default function ProductsPage() {
         fetchData()
       }
     } catch (error) {
-      console.error("Failed to update product:", error)
+      console.error(error)
+      toast.error(t("common.notifications.update_error"))
     } finally {
       setUpdating(false)
+    }
+  }
+
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newCategory.trim()) return
+    setAddingCategory(true)
+    try {
+      const response = await fetch("http://localhost:3001/api/product-categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newCategory })
+      })
+      if (response.ok) {
+        setNewCategory("")
+        fetchData()
+      }
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setAddingCategory(false)
+    }
+  }
+
+  const handleDeleteCategory = async (id: number) => {
+    setDeletingCategoryId(id)
+    try {
+      const response = await fetch(`http://localhost:3001/api/product-categories/${id}`, {
+        method: "DELETE",
+      })
+      if (response.ok) {
+        toast.success(t("common.notifications.cat_deleted"))
+        fetchData()
+      } else {
+        const error = await response.json()
+        if (error.error === "Category is in use and cannot be deleted") {
+          toast.error(t("common.notifications.cat_in_use"))
+        } else {
+          toast.error(error.error || t("common.notifications.cat_delete_error"))
+        }
+      }
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setDeletingCategoryId(null)
     }
   }
 
@@ -256,11 +346,14 @@ export default function ProductsPage() {
       description: p.Description || "",
       price: p.Price.toString(),
       stock: p.Stock.toString(),
-      profitMultiplier: p.ProfitMultiplier?.toString() || "1.0",
+      profitMultiplier: p.ProfitMultiplier?.toString() || "1.5",
+      parentId: p.ParentID?.toString() || "",
+      categoryId: p.CategoryID?.toString() || "",
       imageFront: null,
       imageBack: null,
       selectedMaterials: p.materials?.map(m => ({ id: m.ID, quantity: m.Quantity })) || [],
-      selectedModels: p.models?.map(m => ({ id: m.ID, quantity: m.Quantity })) || []
+      selectedModels: p.models?.map(m => ({ id: m.ID, quantity: m.Quantity })) || [],
+      selectedFilaments: p.filaments?.map(f => ({ id: f.ID, quantity: f.Quantity })) || []
     })
     setIsEditOpen(true)
   }
@@ -272,11 +365,14 @@ export default function ProductsPage() {
       case "description": return value !== (originalProduct.Description || "")
       case "price": return value !== originalProduct.Price.toString()
       case "stock": return value !== originalProduct.Stock.toString()
-      case "profitMultiplier": return value !== (originalProduct.ProfitMultiplier?.toString() || "1.0")
+      case "profitMultiplier": return value !== (originalProduct.ProfitMultiplier?.toString() || "1.5")
+      case "parentId": return value !== (originalProduct.ParentID?.toString() || "")
+      case "categoryId": return value !== (originalProduct.CategoryID?.toString() || "")
       case "imageFront": return value !== null
       case "imageBack": return value !== null
       case "materials": return JSON.stringify(value) !== JSON.stringify(originalProduct.materials?.map(m => ({ id: m.ID, quantity: m.Quantity })) || [])
       case "models": return JSON.stringify(value) !== JSON.stringify(originalProduct.models?.map(m => ({ id: m.ID, quantity: m.Quantity })) || [])
+      case "filaments": return JSON.stringify(value) !== JSON.stringify(originalProduct.filaments?.map(f => ({ id: f.ID, quantity: f.Quantity })) || [])
       default: return false
     }
   }
@@ -289,10 +385,70 @@ export default function ProductsPage() {
         </h1>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-12">
-        {/* Left Column: Form */}
-        <div className="lg:col-span-4 space-y-6">
-          <Card className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        {/* Left Column: Form & Category Management */}
+        <div className="xl:col-span-1 space-y-8">
+          {/* Add Category Section */}
+          <Card id="category-management" className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
+            <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+              <div className="space-y-1.5">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-primary" />
+                  {t("common.add_category")}
+                </CardTitle>
+                <CardDescription>
+                  {t("products.categories_desc")}
+                </CardDescription>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
+                className="h-8 w-8 p-0"
+              >
+                {isCategoriesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CardHeader>
+            <div className={cn(
+              "grid transition-all duration-300 ease-in-out",
+              isCategoriesOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+            )}>
+              <div className="overflow-hidden">
+                <CardContent className="pb-6">
+                  <form onSubmit={handleAddCategory} className="flex gap-2">
+                    <Input
+                      placeholder={t("filament.add_category_placeholder")}
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      className="bg-background/40 border-muted/30"
+                    />
+                    <Button type="submit" size="icon" disabled={addingCategory || !newCategory.trim()}>
+                      {addingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    </Button>
+                  </form>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {categories.map((cat) => (
+                      <div key={cat.ID} className="group flex items-center gap-1 bg-background/60 border border-muted/20 px-2 py-1 rounded-md hover:border-primary/30 transition-all">
+                        <span className="text-xs font-medium">{cat.Name}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 transition-all"
+                          onClick={() => handleDeleteCategory(cat.ID)}
+                          disabled={deletingCategoryId === cat.ID}
+                        >
+                          {deletingCategoryId === cat.ID ? <Loader2 className="h-2 w-2 animate-spin" /> : <X className="h-2 w-2" />}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </div>
+            </div>
+          </Card>
+
+          {/* Add Product Form */}
+          <Card className="border-muted/40 bg-card/40 backdrop-blur-md shadow-xl overflow-hidden transition-all duration-300">
             <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
               <div className="space-y-1.5">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -320,6 +476,76 @@ export default function ProductsPage() {
                 <CardContent className="pb-6">
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="space-y-4">
+                      {/* Sub-product radio toggle */}
+                      <div className="flex gap-4 p-2 bg-muted/20 rounded-lg border border-muted/10">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="type-main"
+                            name="product-type"
+                            checked={!isSubProduct}
+                            onChange={() => setIsSubProduct(false)}
+                            className="w-4 h-4 accent-primary cursor-pointer"
+                          />
+                          <Label htmlFor="type-main" className="text-xs font-bold cursor-pointer">{t("products.inventory")}</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="type-sub"
+                            name="product-type"
+                            checked={isSubProduct}
+                            onChange={() => setIsSubProduct(true)}
+                            className="w-4 h-4 accent-primary cursor-pointer"
+                          />
+                          <Label htmlFor="type-sub" className="text-xs font-bold cursor-pointer">{t("products.sub_product")}</Label>
+                        </div>
+                      </div>
+
+                      {isSubProduct && (
+                        <div className="space-y-2">
+                          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.parent_product")}</Label>
+                          <Popover open={openCategory} onOpenChange={setOpenCategory}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={openCategory}
+                                className="w-full justify-between bg-background/40 border-muted/30 h-10 text-xs"
+                              >
+                                {formData.parentId
+                                  ? products.find((p) => p.ID.toString() === formData.parentId)?.Name
+                                  : t("common.select")}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[250px] p-0" align="start">
+                              <Command>
+                                <CommandInput placeholder={t("common.search")} />
+                                <CommandList>
+                                  <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                                  <CommandGroup>
+                                    {products.filter(p => !p.ParentID).map((p) => (
+                                      <CommandItem
+                                        key={p.ID}
+                                        value={p.Name}
+                                        onSelect={() => {
+                                          setFormData({ ...formData, parentId: p.ID.toString() })
+                                          setOpenCategory(false)
+                                        }}
+                                      >
+                                        <Check className={cn("mr-2 h-4 w-4", formData.parentId === p.ID.toString() ? "opacity-100" : "opacity-0")} />
+                                        {p.Name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      )}
+
                       <div className="space-y-2">
                         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.name")}</Label>
                         <Input
@@ -330,28 +556,64 @@ export default function ProductsPage() {
                           className="bg-background/40 border-muted/30 h-10"
                         />
                       </div>
+
+                      {!isSubProduct && (
+                        <>
+                          <div className="space-y-2">
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.description")}</Label>
+                            <Input
+                              placeholder={t("products.description")}
+                              value={formData.description}
+                              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                              className="bg-background/40 border-muted/30 h-10"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.profit_multiplier")}</Label>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              value={formData.profitMultiplier}
+                              onChange={(e) => setFormData({ ...formData, profitMultiplier: e.target.value })}
+                              className="bg-background/40 border-muted/30 h-10"
+                            />
+                          </div>
+                        </>
+                      )}
+
                       <div className="space-y-2">
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.description")}</Label>
-                        <Input
-                          placeholder={t("products.description")}
-                          value={formData.description}
-                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                          className="bg-background/40 border-muted/30 h-10"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.profit_multiplier")}</Label>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={formData.profitMultiplier}
-                          onChange={(e) => setFormData({ ...formData, profitMultiplier: e.target.value })}
-                          className="bg-background/40 border-muted/30 h-10"
-                        />
+                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("common.category")}</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full justify-between h-10 bg-background/40 border-muted/30 text-xs">
+                              {categories.find(c => c.ID.toString() === formData.categoryId)?.Name || t("common.select")}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[200px] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder={t("common.search")} />
+                              <CommandList>
+                                <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                                <CommandGroup>
+                                  {categories.map((cat) => (
+                                    <CommandItem
+                                      key={cat.ID}
+                                      onSelect={() => setFormData({ ...formData, categoryId: cat.ID.toString() })}
+                                    >
+                                      <Check className={cn("mr-2 h-4 w-4", formData.categoryId === cat.ID.toString() ? "opacity-100" : "opacity-0")} />
+                                      {cat.Name}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-4">
                       <div className="space-y-2">
                         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.image_front")}</Label>
                         <Input
@@ -372,153 +634,216 @@ export default function ProductsPage() {
                       </div>
                     </div>
 
-                    {/* Material Selection */}
-                    <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
-                      <Label className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                        <Layers className="h-3 w-3 text-primary" />
-                        {t("products.select_materials")}
-                      </Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className="w-full justify-between h-9 text-xs">
-                            {t("products.add_material")}
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[250px] p-0" align="start">
-                          <Command>
-                            <CommandInput placeholder={t("common.search")} />
-                            <CommandList>
-                              <CommandEmpty>{t("common.no_data")}</CommandEmpty>
-                              <CommandGroup>
-                                {materials.map(m => (
-                                  <CommandItem
-                                    key={m.ID}
-                                    onSelect={() => {
-                                      setFormData(prev => ({
-                                        ...prev,
-                                        selectedMaterials: [...prev.selectedMaterials, { id: m.ID, quantity: 1 }]
-                                      }))
+                    {!isSubProduct && (
+                      <div className="space-y-4">
+                        {/* Filament Selection */}
+                        <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
+                          <Label className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                            <Box className="h-3 w-3 text-primary" />
+                            {t("products.select_filaments")}
+                          </Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" className="w-full justify-between h-9 text-xs">
+                                {t("products.add_filament")}
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[250px] p-0" align="start">
+                              <Command>
+                                <CommandInput placeholder={t("common.search")} />
+                                <CommandList>
+                                  <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                                  <CommandGroup>
+                                    {filaments.map(f => (
+                                      <CommandItem
+                                        key={f.ID}
+                                        onSelect={() => {
+                                          setFormData(prev => ({
+                                            ...prev,
+                                            selectedFilaments: [...prev.selectedFilaments, { id: f.ID, quantity: 100 }]
+                                          }))
+                                        }}
+                                      >
+                                        {f.Name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                          <div className="space-y-2">
+                            {formData.selectedFilaments.map((sf, idx) => (
+                              <div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10">
+                                <span className="text-xs font-medium flex-1 truncate">
+                                  {filaments.find(f => f.ID === sf.id)?.Name}
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  <Input 
+                                    type="number" 
+                                    className="w-16 h-7 text-xs px-1 text-left" 
+                                    value={sf.quantity}
+                                    onChange={(e) => {
+                                      const newFils = [...formData.selectedFilaments]
+                                      newFils[idx].quantity = parseInt(e.target.value) || 1
+                                      setFormData({ ...formData, selectedFilaments: newFils })
                                     }}
-                                  >
-                                    {m.Name}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      
-                      <div className="space-y-2">
-                        {formData.selectedMaterials.map((sm, idx) => (
-                          <div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10">
-                            <span className="text-xs font-medium flex-1 truncate">
-                              {materials.find(m => m.ID === sm.id)?.Name}
-                            </span>
-                            <Input 
-                              type="number" 
-                              className="w-16 h-7 text-xs px-1" 
-                              value={sm.quantity}
-                              onChange={(e) => {
-                                const newMats = [...formData.selectedMaterials]
-                                newMats[idx].quantity = parseInt(e.target.value) || 1
-                                setFormData({ ...formData, selectedMaterials: newMats })
-                              }}
-                            />
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-7 w-7 text-red-500"
-                              onClick={() => {
-                                const newMats = formData.selectedMaterials.filter((_, i) => i !== idx)
-                                setFormData({ ...formData, selectedMaterials: newMats })
-                              }}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
+                                  />
+                                  <span className="text-[10px] text-muted-foreground">gr</span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                  onClick={() => setFormData({ ...formData, selectedFilaments: formData.selectedFilaments.filter((_, i) => i !== idx) })}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                        </div>
 
-                    {/* Model Selection */}
-                    <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
-                      <Label className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                        <Box className="h-3 w-3 text-primary" />
-                        {t("products.select_models")}
-                      </Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className="w-full justify-between h-9 text-xs">
-                            {t("products.add_model")}
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[250px] p-0" align="start">
-                          <Command>
-                            <CommandInput placeholder={t("common.search")} />
-                            <CommandList>
-                              <CommandEmpty>{t("common.no_data")}</CommandEmpty>
-                              <CommandGroup>
-                                {models.map(m => (
-                                  <CommandItem
-                                    key={m.ID}
-                                    onSelect={() => {
-                                      setFormData(prev => ({
-                                        ...prev,
-                                        selectedModels: [...prev.selectedModels, { id: m.ID, quantity: 1 }]
-                                      }))
-                                    }}
-                                  >
-                                    {m.Name}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      
-                      <div className="space-y-2">
-                        {formData.selectedModels.map((sm, idx) => (
-                          <div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10">
-                            <span className="text-xs font-medium flex-1 truncate">
-                              {models.find(m => m.ID === sm.id)?.Name}
-                            </span>
-                            <Input 
-                              type="number" 
-                              className="w-16 h-7 text-xs px-1" 
-                              value={sm.quantity}
-                              onChange={(e) => {
-                                const newMods = [...formData.selectedModels]
-                                newMods[idx].quantity = parseInt(e.target.value) || 1
-                                setFormData({ ...formData, selectedModels: newMods })
-                              }}
-                            />
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-7 w-7 text-red-500"
-                              onClick={() => {
-                                const newMods = formData.selectedModels.filter((_, i) => i !== idx)
-                                setFormData({ ...formData, selectedModels: newMods })
-                              }}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
+                        {/* Material Selection */}
+                        <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
+                          <Label className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                            <Layers className="h-3 w-3 text-primary" />
+                            {t("products.select_materials")}
+                          </Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" className="w-full justify-between h-9 text-xs">
+                                {t("products.add_material")}
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[250px] p-0" align="start">
+                              <Command>
+                                <CommandInput placeholder={t("common.search")} />
+                                <CommandList>
+                                  <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                                  <CommandGroup>
+                                    {materials.map(m => (
+                                      <CommandItem
+                                        key={m.ID}
+                                        onSelect={() => {
+                                          setFormData(prev => ({
+                                            ...prev,
+                                            selectedMaterials: [...prev.selectedMaterials, { id: m.ID, quantity: 1 }]
+                                          }))
+                                        }}
+                                      >
+                                        {m.Name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                          
+                          <div className="space-y-2">
+                            {formData.selectedMaterials.map((sm, idx) => (
+                              <div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10">
+                                <span className="text-xs font-medium flex-1 truncate">
+                                  {materials.find(m => m.ID === sm.id)?.Name}
+                                </span>
+                                <Input 
+                                  type="number" 
+                                  className="w-16 h-7 text-xs px-1 text-left" 
+                                  value={sm.quantity}
+                                  onChange={(e) => {
+                                    const newMats = [...formData.selectedMaterials]
+                                    newMats[idx].quantity = parseInt(e.target.value) || 1
+                                    setFormData({ ...formData, selectedMaterials: newMats })
+                                  }}
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                  onClick={() => setFormData({ ...formData, selectedMaterials: formData.selectedMaterials.filter((_, i) => i !== idx) })}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                        </div>
 
-                    <Button 
-                      type="submit" 
-                      className="w-full h-11 font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all active:scale-[0.98]" 
-                      disabled={submitting}
-                    >
-                      {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                      {t("products.new_record")}
+                        {/* Model Selection */}
+                        <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
+                          <Label className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                            <TrendingUp className="h-3 w-3 text-primary" />
+                            {t("products.select_models")}
+                          </Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" className="w-full justify-between h-9 text-xs">
+                                {t("products.add_model")}
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[250px] p-0" align="start">
+                              <Command>
+                                <CommandInput placeholder={t("common.search")} />
+                                <CommandList>
+                                  <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                                  <CommandGroup>
+                                    {models.map(m => (
+                                      <CommandItem
+                                        key={m.ID}
+                                        onSelect={() => {
+                                          setFormData(prev => ({
+                                            ...prev,
+                                            selectedModels: [...prev.selectedModels, { id: m.ID, quantity: 1 }]
+                                          }))
+                                        }}
+                                      >
+                                        {m.Name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+
+                          <div className="space-y-2">
+                            {formData.selectedModels.map((sm, idx) => (
+                              <div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10">
+                                <span className="text-xs font-medium flex-1 truncate">
+                                  {models.find(m => m.ID === sm.id)?.Name}
+                                </span>
+                                <Input 
+                                  type="number" 
+                                  className="w-16 h-7 text-xs px-1 text-left" 
+                                  value={sm.quantity}
+                                  onChange={(e) => {
+                                    const newMods = [...formData.selectedModels]
+                                    newMods[idx].quantity = parseInt(e.target.value) || 1
+                                    setFormData({ ...formData, selectedModels: newMods })
+                                  }}
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                  onClick={() => setFormData({ ...formData, selectedModels: formData.selectedModels.filter((_, i) => i !== idx) })}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <Button type="submit" className="w-full h-10 font-bold" disabled={submitting}>
+                      {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShoppingBag className="h-4 w-4 mr-2" />}
+                      {t("common.save")}
                     </Button>
                   </form>
                 </CardContent>
@@ -527,9 +852,9 @@ export default function ProductsPage() {
           </Card>
         </div>
 
-        {/* Right Column: List (Table) */}
-        <div className="lg:col-span-8">
-          <Card className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg h-full flex flex-col overflow-hidden transition-all duration-300">
+        {/* Right Column: Inventory Table */}
+        <div className="xl:col-span-3">
+          <Card className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg h-full transition-all duration-300">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1.5">
@@ -696,166 +1021,356 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Sub-product toggle in Edit */}
+            <div className="flex gap-4 p-2 bg-muted/20 rounded-lg border border-muted/10">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="edit-type-main"
+                  name="edit-product-type"
+                  checked={!editFormData.parentId}
+                  onChange={() => setEditFormData({ ...editFormData, parentId: "" })}
+                  className="w-4 h-4 accent-primary cursor-pointer"
+                />
+                <Label htmlFor="edit-type-main" className="text-xs font-bold cursor-pointer">{t("products.inventory")}</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="edit-type-sub"
+                  name="edit-product-type"
+                  checked={!!editFormData.parentId}
+                  onChange={() => setEditFormData({ ...editFormData, parentId: products.find(p => p.ID !== selectedProduct?.ID)?.ID.toString() || "" })}
+                  className="w-4 h-4 accent-primary cursor-pointer"
+                />
+                <Label htmlFor="edit-type-sub" className="text-xs font-bold cursor-pointer">{t("products.sub_product")}</Label>
+              </div>
+            </div>
+
+            {editFormData.parentId && (
               <div className="space-y-2">
-                <Label className="text-xs font-semibold">{t("products.image_front")}</Label>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.parent_product")}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between h-10 bg-background/40 border-muted/30 text-xs">
+                      {products.find(p => p.ID.toString() === editFormData.parentId)?.Name || t("common.select")}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[250px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder={t("common.search")} />
+                      <CommandList>
+                        <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                        <CommandGroup>
+                          {products.filter(p => !p.ParentID && p.ID !== selectedProduct?.ID).map((p) => (
+                            <CommandItem
+                              key={p.ID}
+                              onSelect={() => setEditFormData({ ...editFormData, parentId: p.ID.toString() })}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", editFormData.parentId === p.ID.toString() ? "opacity-100" : "opacity-0")} />
+                              {p.Name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.name")}</Label>
+              <Input
+                placeholder={t("products.name")}
+                value={editFormData.name}
+                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                required
+                className={cn("bg-background/40", isFieldChanged("name", editFormData.name) && "border-yellow-400 ring-1 ring-yellow-400/50")}
+              />
+            </div>
+
+            {!editFormData.parentId && (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.description")}</Label>
+                  <Input
+                    placeholder={t("products.description")}
+                    value={editFormData.description}
+                    onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                    className={cn("bg-background/40", isFieldChanged("description", editFormData.description) && "border-yellow-400 ring-1 ring-yellow-400/50")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.profit_multiplier")}</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={editFormData.profitMultiplier}
+                    onChange={(e) => setEditFormData({ ...editFormData, profitMultiplier: e.target.value })}
+                    className={cn("bg-background/40", isFieldChanged("profitMultiplier", editFormData.profitMultiplier) && "border-yellow-400 ring-1 ring-yellow-400/50")}
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("common.category")}</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-between h-10 bg-background/40 border-muted/30 text-xs", isFieldChanged("categoryId", editFormData.categoryId) && "border-yellow-400 ring-1 ring-yellow-400/50")}>
+                    {categories.find(c => c.ID.toString() === editFormData.categoryId)?.Name || t("common.select")}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder={t("common.search")} />
+                    <CommandList>
+                      <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                      <CommandGroup>
+                        {categories.map((cat) => (
+                          <CommandItem
+                            key={cat.ID}
+                            onSelect={() => setEditFormData({ ...editFormData, categoryId: cat.ID.toString() })}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", editFormData.categoryId === cat.ID.toString() ? "opacity-100" : "opacity-0")} />
+                            {cat.Name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.image_front")}</Label>
                 <Input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setEditFormData({ ...editFormData, imageFront: e.target.files?.[0] || null })}
+                  className="bg-background/40 border-muted/30 h-10"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-semibold">{t("products.image_back")}</Label>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.image_back")}</Label>
                 <Input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setEditFormData({ ...editFormData, imageBack: e.target.files?.[0] || null })}
+                  className="bg-background/40 border-muted/30 h-10"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* Material Selection in Edit */}
-              <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
-                <Label className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                  <Layers className="h-3 w-3 text-primary" />
-                  {t("products.select_materials")}
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between h-9 text-xs">
-                      {t("products.add_material")}
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[200px] p-0">
-                    <Command>
-                      <CommandInput placeholder={t("common.search")} />
-                      <CommandList>
-                        <CommandEmpty>{t("common.no_data")}</CommandEmpty>
-                        <CommandGroup>
-                          {materials.map(m => (
-                            <CommandItem
-                              key={m.ID}
-                              onSelect={() => {
-                                setEditFormData(prev => ({
-                                  ...prev,
-                                  selectedMaterials: [...prev.selectedMaterials, { id: m.ID, quantity: 1 }]
-                                }))
-                              }}
-                            >
-                              {m.Name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                
-                <div className="space-y-2 max-h-[150px] overflow-y-auto scrollbar-none">
-                  {editFormData.selectedMaterials.map((sm, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10">
-                      <span className="text-[10px] font-medium flex-1 truncate">
-                        {materials.find(m => m.ID === sm.id)?.Name}
-                      </span>
-                      <Input 
-                        type="number" 
-                        className="w-12 h-6 text-[10px] px-1" 
-                        value={sm.quantity}
-                        onChange={(e) => {
-                          const newMats = [...editFormData.selectedMaterials]
-                          newMats[idx].quantity = parseInt(e.target.value) || 1
-                          setEditFormData({ ...editFormData, selectedMaterials: newMats })
-                        }}
-                      />
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6 text-red-500"
-                        onClick={() => {
-                          const newMats = editFormData.selectedMaterials.filter((_, i) => i !== idx)
-                          setEditFormData({ ...editFormData, selectedMaterials: newMats })
-                        }}
-                      >
-                        <X className="h-2 w-2" />
+            {!editFormData.parentId && (
+              <div className="space-y-4">
+                {/* Filament Selection in Edit */}
+                <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
+                  <Label className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                    <Box className="h-3 w-3 text-primary" />
+                    {t("products.select_filaments")}
+                  </Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between h-9 text-xs">
+                        {t("products.add_filament")}
+                        <Plus className="h-3 w-3" />
                       </Button>
-                    </div>
-                  ))}
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[250px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder={t("common.search")} />
+                        <CommandList>
+                          <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                          <CommandGroup>
+                            {filaments.map(f => (
+                              <CommandItem
+                                key={f.ID}
+                                onSelect={() => {
+                                  setEditFormData(prev => ({
+                                    ...prev,
+                                    selectedFilaments: [...prev.selectedFilaments, { id: f.ID, quantity: 100 }]
+                                  }))
+                                }}
+                              >
+                                {f.Name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <div className="space-y-2">
+                    {editFormData.selectedFilaments.map((sf, idx) => (
+                      <div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10">
+                        <span className="text-xs font-medium flex-1 truncate">
+                          {filaments.find(f => f.ID === sf.id)?.Name}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <Input 
+                            type="number" 
+                            className="w-16 h-7 text-xs px-1 text-left" 
+                            value={sf.quantity}
+                            onChange={(e) => {
+                              const newFils = [...editFormData.selectedFilaments]
+                              newFils[idx].quantity = parseInt(e.target.value) || 1
+                              setEditFormData({ ...editFormData, selectedFilaments: newFils })
+                            }}
+                          />
+                          <span className="text-[10px] text-muted-foreground">gr</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                          onClick={() => setEditFormData({ ...editFormData, selectedFilaments: editFormData.selectedFilaments.filter((_, i) => i !== idx) })}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Model Selection in Edit */}
-              <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
-                <Label className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                  <Box className="h-3 w-3 text-primary" />
-                  {t("products.select_models")}
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between h-9 text-xs">
-                      {t("products.add_model")}
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[200px] p-0">
-                    <Command>
-                      <CommandInput placeholder={t("common.search")} />
-                      <CommandList>
-                        <CommandEmpty>{t("common.no_data")}</CommandEmpty>
-                        <CommandGroup>
-                          {models.map(m => (
-                            <CommandItem
-                              key={m.ID}
-                              onSelect={() => {
-                                setEditFormData(prev => ({
-                                  ...prev,
-                                  selectedModels: [...prev.selectedModels, { id: m.ID, quantity: 1 }]
-                                }))
-                              }}
-                            >
-                              {m.Name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                
-                <div className="space-y-2 max-h-[150px] overflow-y-auto scrollbar-none">
-                  {editFormData.selectedModels.map((sm, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10">
-                      <span className="text-[10px] font-medium flex-1 truncate">
-                        {models.find(m => m.ID === sm.id)?.Name}
-                      </span>
-                      <Input 
-                        type="number" 
-                        className="w-12 h-6 text-[10px] px-1" 
-                        value={sm.quantity}
-                        onChange={(e) => {
-                          const newMods = [...editFormData.selectedModels]
-                          newMods[idx].quantity = parseInt(e.target.value) || 1
-                          setEditFormData({ ...editFormData, selectedModels: newMods })
-                        }}
-                      />
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6 text-red-500"
-                        onClick={() => {
-                          const newMods = editFormData.selectedModels.filter((_, i) => i !== idx)
-                          setEditFormData({ ...editFormData, selectedModels: newMods })
-                        }}
-                      >
-                        <X className="h-2 w-2" />
+                {/* Material Selection in Edit */}
+                <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
+                  <Label className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                    <Layers className="h-3 w-3 text-primary" />
+                    {t("products.select_materials")}
+                  </Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between h-9 text-xs">
+                        {t("products.add_material")}
+                        <Plus className="h-3 w-3" />
                       </Button>
-                    </div>
-                  ))}
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[250px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder={t("common.search")} />
+                        <CommandList>
+                          <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                          <CommandGroup>
+                            {materials.map(m => (
+                              <CommandItem
+                                key={m.ID}
+                                onSelect={() => {
+                                  setEditFormData(prev => ({
+                                    ...prev,
+                                    selectedMaterials: [...prev.selectedMaterials, { id: m.ID, quantity: 1 }]
+                                  }))
+                                }}
+                              >
+                                {m.Name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <div className="space-y-2">
+                    {editFormData.selectedMaterials.map((sm, idx) => (
+                      <div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10">
+                        <span className="text-xs font-medium flex-1 truncate">
+                          {materials.find(m => m.ID === sm.id)?.Name}
+                        </span>
+                        <Input 
+                          type="number" 
+                          className="w-16 h-7 text-xs px-1 text-left" 
+                          value={sm.quantity}
+                          onChange={(e) => {
+                            const newMats = [...editFormData.selectedMaterials]
+                            newMats[idx].quantity = parseInt(e.target.value) || 1
+                            setEditFormData({ ...editFormData, selectedMaterials: newMats })
+                          }}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                          onClick={() => setEditFormData({ ...editFormData, selectedMaterials: editFormData.selectedMaterials.filter((_, i) => i !== idx) })}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Model Selection in Edit */}
+                <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
+                  <Label className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                    <TrendingUp className="h-3 w-3 text-primary" />
+                    {t("products.select_models")}
+                  </Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between h-9 text-xs">
+                        {t("products.add_model")}
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[250px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder={t("common.search")} />
+                        <CommandList>
+                          <CommandEmpty>{t("common.no_data")}</CommandEmpty>
+                          <CommandGroup>
+                            {models.map(m => (
+                              <CommandItem
+                                key={m.ID}
+                                onSelect={() => {
+                                  setEditFormData(prev => ({
+                                    ...prev,
+                                    selectedModels: [...prev.selectedModels, { id: m.ID, quantity: 1 }]
+                                  }))
+                                }}
+                              >
+                                {m.Name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <div className="space-y-2">
+                    {editFormData.selectedModels.map((sm, idx) => (
+                      <div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10">
+                        <span className="text-xs font-medium flex-1 truncate">
+                          {models.find(m => m.ID === sm.id)?.Name}
+                        </span>
+                        <Input 
+                          type="number" 
+                          className="w-16 h-7 text-xs px-1 text-left" 
+                          value={sm.quantity}
+                          onChange={(e) => {
+                            const newMods = [...editFormData.selectedModels]
+                            newMods[idx].quantity = parseInt(e.target.value) || 1
+                            setEditFormData({ ...editFormData, selectedModels: newMods })
+                          }}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                          onClick={() => setEditFormData({ ...editFormData, selectedModels: editFormData.selectedModels.filter((_, i) => i !== idx) })}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>{t("common.cancel")}</Button>

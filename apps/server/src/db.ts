@@ -93,6 +93,20 @@ db.exec(`
     FOREIGN KEY (ModelID) REFERENCES Model_TB(ID)
   );
 
+  CREATE TABLE IF NOT EXISTS ProductCategory_TB (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    Name TEXT NOT NULL UNIQUE COLLATE NOCASE
+  );
+
+  CREATE TABLE IF NOT EXISTS ProductFilaments_TB (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    ProductID INTEGER,
+    FilamentID INTEGER,
+    Quantity INTEGER DEFAULT 1,
+    FOREIGN KEY (ProductID) REFERENCES Product_TB(ID) ON DELETE CASCADE,
+    FOREIGN KEY (FilamentID) REFERENCES Filament_TB(ID)
+  );
+
   -- Migration for existing Product_TB if any
   PRAGMA table_info(Product_TB);
 `)
@@ -105,6 +119,9 @@ interface TableColumn {
 const filamentInfo = db.prepare("PRAGMA table_info(Filament_TB)").all() as TableColumn[]
 if (!filamentInfo.find(col => col.name === "Name")) {
   db.exec("ALTER TABLE Filament_TB ADD COLUMN Name TEXT")
+}
+if (!filamentInfo.find(col => col.name === "Link")) {
+  db.exec("ALTER TABLE Filament_TB ADD COLUMN Link TEXT")
 }
 
 const modelInfo = db.prepare("PRAGMA table_info(Model_TB)").all() as TableColumn[]
@@ -125,6 +142,12 @@ if (!productInfo.find(col => col.name === "ImageBack")) {
 }
 if (!productInfo.find(col => col.name === "ProfitMultiplier")) {
   db.exec("ALTER TABLE Product_TB ADD COLUMN ProfitMultiplier REAL DEFAULT 1.0")
+}
+if (!productInfo.find(col => col.name === "ParentID")) {
+  db.exec("ALTER TABLE Product_TB ADD COLUMN ParentID INTEGER")
+}
+if (!productInfo.find(col => col.name === "CategoryID")) {
+  db.exec("ALTER TABLE Product_TB ADD COLUMN CategoryID INTEGER")
 }
 
 export default db

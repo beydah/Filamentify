@@ -20,7 +20,8 @@ import {
   FilterX,
   Eye,
   Database,
-  Minus
+  Minus,
+  ExternalLink
 } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { tr, enUS } from "date-fns/locale"
@@ -92,6 +93,7 @@ interface Filament {
   Available_Gram: number
   PurchaseDate: string
   Status: string
+  Link?: string
 }
 
 const presetColors = [
@@ -154,6 +156,7 @@ export default function FilamentPage() {
     price: "",
     gram: "",
     purchaseDate: new Date(),
+    link: ""
   })
 
   const [detailFilament, setDetailFilament] = React.useState<Filament | null>(null)
@@ -168,6 +171,7 @@ export default function FilamentPage() {
     price: "500",
     gram: "1000",
     purchaseDate: new Date(),
+    link: ""
   })
 
   const [openCategory, setOpenCategory] = React.useState(false)
@@ -272,10 +276,11 @@ export default function FilamentPage() {
           categoryId: parseInt(formData.categoryId),
           name: toTitleCase(formData.name),
           color: formData.color,
-          price: parseInt(formData.price),
+          price: parseFloat(formData.price),
           gram: parseInt(formData.gram),
           purchaseDate: formData.purchaseDate.toISOString(),
-        }),
+          link: formData.link
+        })
       })
 
       if (response.ok) {
@@ -287,6 +292,7 @@ export default function FilamentPage() {
           price: "500",
           gram: "1000",
           purchaseDate: new Date(),
+          link: ""
         })
         fetchData()
       }
@@ -297,16 +303,17 @@ export default function FilamentPage() {
     }
   }
 
-  const handleEditClick = (filament: Filament) => {
-    setEditingFilament(filament)
-    setOriginalFilament(filament)
+  const handleEditClick = (f: Filament) => {
+    setEditingFilament(f)
+    setOriginalFilament(f)
     setEditFormData({
-      name: filament.Name || "",
-      categoryId: filament.CategoryID ? filament.CategoryID.toString() : "",
-      color: filament.Color,
-      price: filament.Price.toString(),
-      gram: filament.Gram.toString(),
-      purchaseDate: new Date(filament.PurchaseDate),
+      name: f.Name,
+      categoryId: f.CategoryID.toString(),
+      color: f.Color,
+      price: f.Price.toString(),
+      gram: f.Gram.toString(),
+      purchaseDate: new Date(f.PurchaseDate),
+      link: f.Link || ""
     })
     setIsEditDialogOpen(true)
   }
@@ -314,12 +321,13 @@ export default function FilamentPage() {
   const isFieldChanged = (field: string, value: any) => {
     if (!originalFilament) return false
     switch (field) {
-      case "name": return value !== (originalFilament.Name || "")
-      case "categoryId": return value !== (originalFilament.CategoryID ? originalFilament.CategoryID.toString() : "")
+      case "name": return value !== originalFilament.Name
+      case "categoryId": return value !== originalFilament.CategoryID.toString()
       case "color": return value !== originalFilament.Color
       case "price": return value !== originalFilament.Price.toString()
       case "gram": return value !== originalFilament.Gram.toString()
-      case "purchaseDate": return value.toDateString() !== new Date(originalFilament.PurchaseDate).toDateString()
+      case "purchaseDate": return value.getTime() !== new Date(originalFilament.PurchaseDate).getTime()
+      case "link": return value !== (originalFilament.Link || "")
       default: return false
     }
   }
@@ -337,7 +345,8 @@ export default function FilamentPage() {
           price: parseInt(editFormData.price),
           gram: parseInt(editFormData.gram),
           purchaseDate: editFormData.purchaseDate.toISOString(),
-        }),
+          link: editFormData.link
+        })
       })
       if (response.ok) {
         setUpdateSuccess(true)
@@ -561,6 +570,16 @@ export default function FilamentPage() {
                           className="bg-background/40 border-muted/30 transition-all"
                         />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("materials.link")}</Label>
+                      <Input
+                        placeholder="https://..."
+                        value={formData.link}
+                        onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                        className="bg-background/40 border-muted/30 transition-all"
+                      />
                     </div>
 
                     <div className="space-y-2">
@@ -968,6 +987,17 @@ export default function FilamentPage() {
                   />
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("materials.link")}</Label>
+                <Input
+                  placeholder="https://..."
+                  value={editFormData.link}
+                  onChange={(e) => setEditFormData({ ...editFormData, link: e.target.value })}
+                  className={cn("bg-background/40 transition-all", isFieldChanged("link", editFormData.link) && "border-yellow-400 ring-1 ring-yellow-400/50")}
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label className="text-xs tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
                   <CalendarIcon className="h-3 w-3" />
@@ -1068,8 +1098,18 @@ export default function FilamentPage() {
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("filament.details.purchase_date")}</p>
                 <p className="text-sm font-medium">
-                  {detailFilament?.PurchaseDate ? format(parseISO(detailFilament.PurchaseDate), "PPP", { locale: currentLocale }) : "-"}
+                  {detailFilament?.PurchaseDate ? new Date(detailFilament.PurchaseDate).toLocaleDateString('tr-TR') : "-"}
                 </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">{t("materials.link")}</span>
+                <div className="text-sm font-medium flex items-center gap-2">
+                  {detailFilament?.Link ? (
+                    <a href={detailFilament.Link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                      {t("common.inspect")} <ExternalLink className="h-3 w-3" />
+                    </a>
+                  ) : "-"}
+                </div>
               </div>
               <div className="col-span-2 space-y-3 pt-2">
                 <div className="flex justify-between items-end">

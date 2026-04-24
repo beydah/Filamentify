@@ -99,9 +99,9 @@ app.post("/api/filaments", (req, res) => {
   const available_gram = gram
   
   const info = db.prepare(`
-    INSERT INTO Filament_TB (CategoryID, Name, Color, Price, Gram, Available_Gram, PurchaseDate) 
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(categoryId, name, color, price, gram, available_gram, purchaseDate)
+    INSERT INTO Filament_TB (CategoryID, Name, Color, Price, Gram, Available_Gram, PurchaseDate, Link) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(categoryId, name, color, price, gram, available_gram, purchaseDate, req.body.link)
   
   res.status(201).json({ 
     ID: info.lastInsertRowid, 
@@ -111,7 +111,8 @@ app.post("/api/filaments", (req, res) => {
     Price: price, 
     Gram: gram, 
     Available_Gram: available_gram,
-    PurchaseDate: purchaseDate
+    PurchaseDate: purchaseDate,
+    Link: req.body.link
   })
 })
 
@@ -126,10 +127,9 @@ app.patch("/api/filaments/:id", (req, res) => {
 
     db.prepare(`
       UPDATE Filament_TB 
-      SET CategoryID = ?, Price = ?, Gram = ?, PurchaseDate = ?, Available_Gram = ?
+      SET CategoryID = ?, Price = ?, Gram = ?, PurchaseDate = ?, Available_Gram = ?, Link = ?
       WHERE ID = ?
-    `).run(categoryId, price, gram, purchaseDate, gram, id) // Assuming editing gram resets available gram for simplicity or we should adjust proportionally. 
-                                                // User asked to edit gram, usually it means correcting the total.
+    `).run(categoryId, price, gram, purchaseDate, gram, req.body.link, id)
     res.json({ message: "Filament updated successfully" })
   } catch (error) {
     res.status(500).json({ error: "Failed to update filament" })
@@ -338,9 +338,43 @@ app.delete("/api/materials/:id", (req, res) => {
   }
 })
 
+// Product Category Endpoints
+app.get("/api/product-categories", (req, res) => {
+  const categories = db.prepare("SELECT * FROM ProductCategory_TB").all()
+  res.json(categories)
+})
+
+app.post("/api/product-categories", (req, res) => {
+  const { name } = req.body
+  try {
+    const info = db.prepare("INSERT INTO ProductCategory_TB (Name) VALUES (?)").run(name)
+    res.status(201).json({ ID: info.lastInsertRowid, Name: name })
+  } catch (error) {
+    res.status(400).json({ error: "Product category already exists or invalid data" })
+  }
+})
+
+app.delete("/api/product-categories/:id", (req, res) => {
+  const { id } = req.params
+  try {
+    const usage = db.prepare("SELECT COUNT(*) as count FROM Product_TB WHERE CategoryID = ?").get(id) as { count: number }
+    if (usage.count > 0) {
+      return res.status(400).json({ error: "Category is in use and cannot be deleted" })
+    }
+    db.prepare("DELETE FROM ProductCategory_TB WHERE ID = ?").run(id)
+    res.json({ message: "Product category deleted successfully" })
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete product category" })
+  }
+})
+
 // Product Endpoints
 app.get("/api/products", (req, res) => {
-  const products = db.prepare("SELECT * FROM Product_TB").all() as any[]
+  const products = db.prepare(`
+    SELECT p.*, c.Name as CategoryName 
+    FROM Product_TB p
+    LEFT JOIN ProductCategory_TB c ON p.CategoryID = c.ID
+  `).all() as any[]
   
   // Fetch materials and models for each product
   const productsWithDetails = products.map(p => {
@@ -358,14 +392,21 @@ app.get("/api/products", (req, res) => {
       WHERE pm.ProductID = ?
     `).all(p.ID)
     
-    return { ...p, materials, models }
+    const filaments = db.prepare(`
+      SELECT pf.*, f.Name 
+      FROM ProductFilaments_TB pf
+      JOIN Filament_TB f ON pf.FilamentID = f.ID
+      WHERE pf.ProductID = ?
+    `).all(p.ID)
+    
+    return { ...p, materials, models, filaments }
   })
   
   res.json(productsWithDetails)
 })
 
 app.post("/api/products", upload.fields([{ name: 'imageFront', maxCount: 1 }, { name: 'imageBack', maxCount: 1 }]), (req, res) => {
-  const { name, description, price, stock, profitMultiplier, materials, models } = req.body
+  const { name, description, price, stock, profitMultiplier, materials, models, filaments, parentId, categoryId } = req.body
   const files = req.files as { [fieldname: string]: Express.Multer.File[] }
   
   const imageFront = files['imageFront'] ? files['imageFront'][0].path.replace(/\\/g, "/") : null
@@ -373,11 +414,11 @@ app.post("/api/products", upload.fields([{ name: 'imageFront', maxCount: 1 }, { 
 
   try {
     const insertProduct = db.prepare(`
-      INSERT INTO Product_TB (Name, Description, Price, Stock, ImageFront, ImageBack, ProfitMultiplier) 
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO Product_TB (Name, Description, Price, Stock, ImageFront, ImageBack, ProfitMultiplier, ParentID, CategoryID) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     
-    const info = insertProduct.run(name, description, price, stock, imageFront, imageBack, profitMultiplier || 1.0)
+    const info = insertProduct.run(name, description, price, stock, imageFront, imageBack, profitMultiplier || 1.0, parentId || null, categoryId || null)
     const productId = info.lastInsertRowid
 
     // Insert materials
@@ -394,6 +435,13 @@ app.post("/api/products", upload.fields([{ name: 'imageFront', maxCount: 1 }, { 
       mods.forEach((m: any) => insertMod.run(productId, m.id, m.quantity))
     }
 
+    // Insert filaments
+    if (filaments) {
+      const fils = JSON.parse(filaments)
+      const insertFil = db.prepare("INSERT INTO ProductFilaments_TB (ProductID, FilamentID, Quantity) VALUES (?, ?, ?)")
+      fils.forEach((f: any) => insertFil.run(productId, f.id, f.quantity))
+    }
+
     res.status(201).json({ ID: productId })
   } catch (error) {
     console.error(error)
@@ -403,7 +451,7 @@ app.post("/api/products", upload.fields([{ name: 'imageFront', maxCount: 1 }, { 
 
 app.patch("/api/products/:id", upload.fields([{ name: 'imageFront', maxCount: 1 }, { name: 'imageBack', maxCount: 1 }]), (req, res) => {
   const { id } = req.params
-  const { name, description, price, stock, profitMultiplier, materials, models } = req.body
+  const { name, description, price, stock, profitMultiplier, materials, models, filaments, parentId, categoryId } = req.body
   const files = req.files as { [fieldname: string]: Express.Multer.File[] }
 
   try {
@@ -418,9 +466,9 @@ app.patch("/api/products/:id", upload.fields([{ name: 'imageFront', maxCount: 1 
 
     db.prepare(`
       UPDATE Product_TB 
-      SET Name = ?, Description = ?, Price = ?, Stock = ?, ImageFront = ?, ImageBack = ?, ProfitMultiplier = ?
+      SET Name = ?, Description = ?, Price = ?, Stock = ?, ImageFront = ?, ImageBack = ?, ProfitMultiplier = ?, ParentID = ?, CategoryID = ?
       WHERE ID = ?
-    `).run(name, description, price, stock, imageFront, imageBack, profitMultiplier || 1.0, id)
+    `).run(name, description, price, stock, imageFront, imageBack, profitMultiplier || 1.0, parentId || null, categoryId || null, id)
 
     // Update materials (clear and re-insert)
     if (materials) {
@@ -436,6 +484,14 @@ app.patch("/api/products/:id", upload.fields([{ name: 'imageFront', maxCount: 1 
       const mods = JSON.parse(models)
       const insertMod = db.prepare("INSERT INTO ProductModels_TB (ProductID, ModelID, Quantity) VALUES (?, ?, ?)")
       mods.forEach((m: any) => insertMod.run(id, m.id, m.quantity))
+    }
+
+    // Update filaments
+    if (filaments) {
+      db.prepare("DELETE FROM ProductFilaments_TB WHERE ProductID = ?").run(id)
+      const fils = JSON.parse(filaments)
+      const insertFil = db.prepare("INSERT INTO ProductFilaments_TB (ProductID, FilamentID, Quantity) VALUES (?, ?, ?)")
+      fils.forEach((f: any) => insertFil.run(id, f.id, f.quantity))
     }
 
     res.json({ message: "Product updated successfully" })

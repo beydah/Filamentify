@@ -111,8 +111,8 @@
     "name": "Model İsmi",
     "category": "Kategori",
     "name_placeholder": "Örn: Iron Man Büst",
-    "link": "Model Linki",
-    "link_placeholder": "Thingiverse, Printables vb.",
+    "link": "Bağlantı",
+    "link_placeholder": "https://...",
     "gram": "Gramaj (gr)",
     "gram_placeholder": "Ağırlık",
     "piece_count": "Parça Sayısı",
@@ -188,6 +188,12 @@
       "name": "Ürün",
       "price": "Fiyat",
       "stock": "Stok"
-    }
+    },
+    "sub_product": "Alt Ürün",
+    "parent_product": "Üst Ürün",
+    "select_filaments": "Filament Seçimi",
+    "add_filament": "Filament Ekle",
+    "categories": "Ürün Kategorileri",
+    "categories_desc": "Ürünlerinizi gruplandırın."
   }
 }
