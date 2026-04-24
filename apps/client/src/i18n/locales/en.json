@@ -21,14 +21,22 @@
     "category_not_found": "Category not found.",
     "no_category": "No Category",
     "add_category": "Add Category",
+    "clear_filters": "Clear Filters",
     "notifications": {
       "added": "Added successfully",
       "deleted": "Deleted",
       "delete_error": "Failed to delete",
       "cat_deleted": "Category deleted",
       "cat_delete_error": "Failed to delete category",
-      "cat_in_use": "Category is in use and cannot be deleted"
-    }
+      "cat_in_use": "Category is in use and cannot be deleted",
+      "updated": "Updated successfully"
+    },
+    "is_sub_product": "Is sub-product?",
+    "multiplier": "Multiplier",
+    "cost": "Cost",
+    "usage_per_unit": "Usage Per Unit (%)",
+    "registration_date": "Registration Date",
+    "no_link": "No link"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -102,7 +110,11 @@
     },
     "status": {
       "in_stock": "In Stock",
-      "low_stock": "Low Stock"
+      "low_stock": "Low Stock",
+      "empty": "Empty",
+      "az": "Low",
+      "orta": "Medium",
+      "dolu": "Full"
     }
   },
   "models": {

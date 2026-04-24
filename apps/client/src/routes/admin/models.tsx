@@ -77,6 +77,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/ui/controls/dialog"
+import { CategoryCard } from "@/ui/admin/CategoryCard"
 
 interface ModelCategory {
   ID: number
@@ -144,10 +145,6 @@ function ModelViewer({ filePath }: { filePath?: string }) {
   )
 }
 
-const toTitleCase = (str: string) => {
-  return str;
-}
-
 export default function ModelsPage() {
   const { t } = useTranslation()
   
@@ -159,7 +156,6 @@ export default function ModelsPage() {
   const [deletingCategoryId, setDeletingCategoryId] = React.useState<number | null>(null)
   
   const [isFormOpen, setIsFormOpen] = React.useState(true)
-  const [isCategoriesOpen, setIsCategoriesOpen] = React.useState(false)
 
   const [editingModel, setEditingModel] = React.useState<Model | null>(null)
   const [originalModel, setOriginalModel] = React.useState<Model | null>(null)
@@ -175,7 +171,6 @@ export default function ModelsPage() {
   })
   const [updating, setUpdating] = React.useState(false)
 
-  const [newCategory, setNewCategory] = React.useState("")
   const [formData, setFormData] = React.useState({
     name: "",
     categoryId: "",
@@ -190,7 +185,6 @@ export default function ModelsPage() {
 
   const [openCategory, setOpenCategory] = React.useState(false)
   const [isDragging, setIsDragging] = React.useState(false)
-  const [isDraggingEdit, setIsDraggingEdit] = React.useState(false)
 
   const [filterCategory, setFilterCategory] = React.useState<string>("all")
 
@@ -219,32 +213,8 @@ export default function ModelsPage() {
   }, [])
 
   React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData()
   }, [fetchData])
-
-  const handleAddCategory = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newCategory.trim()) return
-    setAddingCategory(true)
-    try {
-      const response = await fetch("http://localhost:3001/api/model-categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: toTitleCase(newCategory)
-        })
-      })
-      if (response.ok) {
-        setNewCategory("")
-        fetchData()
-      }
-    } catch (error) {
-      console.error("Failed to add category:", error)
-    } finally {
-      setAddingCategory(false)
-    }
-  }
 
   const handleDeleteCategory = async (id: number) => {
     setDeletingCategoryId(id)
@@ -295,7 +265,7 @@ export default function ModelsPage() {
     try {
       const data = new FormData()
       data.append("categoryId", formData.categoryId)
-      data.append("name", toTitleCase(formData.name))
+      data.append("name", formData.name)
       data.append("link", formData.link)
       data.append("gram", formData.gram)
       data.append("pieceCount", formData.pieceCount)
@@ -360,7 +330,7 @@ export default function ModelsPage() {
     setUpdating(true)
     try {
       const data = new FormData()
-      data.append("name", toTitleCase(editFormData.name))
+      data.append("name", editFormData.name)
       data.append("categoryId", editFormData.categoryId)
       data.append("link", editFormData.link)
       data.append("gram", editFormData.gram)
@@ -456,7 +426,7 @@ export default function ModelsPage() {
                         </PopoverTrigger>
                         <PopoverContent className="w-[200px] p-0" align="start">
                           <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("models.category")}</span>
+                            <span className="text-[10px] font-bold tracking-wider text-muted-foreground">{t("models.category")}</span>
                             <Button 
                               variant="ghost" 
                               size="icon" 
@@ -621,67 +591,27 @@ export default function ModelsPage() {
             </div>
           </Card>
 
-          <Card id="category-management" className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
-            <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
-              <div className="space-y-1.5">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Tag className="h-4 w-4 text-primary" />
-                  {t("common.add_category")}
-                </CardTitle>
-                <CardDescription>
-                  {t("models.categories_desc")}
-                </CardDescription>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
-                className="h-8 w-8 p-0"
-              >
-                {isCategoriesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </Button>
-            </CardHeader>
-            <div className={cn(
-              "grid transition-all duration-300 ease-in-out",
-              isCategoriesOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-            )}>
-              <div className="overflow-hidden">
-                <CardContent className="pb-6">
-                  <form onSubmit={handleAddCategory} className="flex gap-2">
-                    <Input
-                      placeholder={t("models.add_category_placeholder")}
-                      value={newCategory}
-                      onChange={(e) => setNewCategory(e.target.value)}
-                      className="bg-background/40 border-muted/30 focus:border-primary/50 transition-all"
-                    />
-                    <Button size="icon" type="submit" disabled={addingCategory || !newCategory.trim()}>
-                      {addingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                    </Button>
-                  </form>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {categories.map((cat) => (
-                      <div key={cat.ID} className="group relative">
-                        <span className="px-2.5 py-1 pr-7 rounded-md bg-muted/30 border border-muted/20 text-xs font-medium flex items-center gap-1">
-                          {cat.Name}
-                        </span>
-                        <button
-                          onClick={() => handleDeleteCategory(cat.ID)}
-                          disabled={deletingCategoryId === cat.ID}
-                          className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                          {deletingCategoryId === cat.ID ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3 w-3" />
-                          )}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </div>
-            </div>
-          </Card>
+          <CategoryCard
+            title={t("common.add_category")}
+            description={t("models.categories_desc")}
+            categories={categories}
+            onAdd={async (name) => {
+              setAddingCategory(true)
+              try {
+                const response = await fetch("http://localhost:3001/api/model-categories", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name }),
+                })
+                if (response.ok) fetchData()
+              } finally {
+                setAddingCategory(false)
+              }
+            }}
+            onDelete={handleDeleteCategory}
+            addingCategory={addingCategory}
+            deletingCategoryId={deletingCategoryId}
+          />
         </div>
 
         <div className="lg:col-span-8">
@@ -737,7 +667,7 @@ export default function ModelsPage() {
                           size="icon" 
                           className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
                           onClick={() => setFilterCategory("all")}
-                          title="Filtreleri Temizle"
+                          title={t("common.clear_filters")}
                         >
                           <FilterX className="h-3 w-3" />
                         </Button>
@@ -803,214 +733,134 @@ export default function ModelsPage() {
                   )}
                 </TableBody>
               </Table>
-              )}
+            )}
             </CardContent>
           </Card>
         </div>
       </div>
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{t("models.edit_dialog.title")}</DialogTitle>
-            <DialogDescription>
-              {t("models.edit_dialog.desc")}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleUpdate} className="space-y-6 py-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold">{t("models.name")}</Label>
-                <Input
-                  value={editFormData.name}
-                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                  required
-                  className={cn(isFieldChanged("name", editFormData.name) && "border-yellow-400 ring-1 ring-yellow-400/50")}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold">{t("models.category")}</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-between font-normal", isFieldChanged("categoryId", editFormData.categoryId) && "border-yellow-400 ring-1 ring-yellow-400/50")}>
-                      {categories.find(c => c.ID.toString() === editFormData.categoryId)?.Name || t("models.select_category")}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[200px] p-0">
-                    <Command>
-                      <CommandInput placeholder={t("common.search")} />
-                      <CommandList>
-                        <CommandEmpty>{t("common.no_data")}</CommandEmpty>
-                        <CommandGroup>
-                          {categories.map((cat) => (
-                            <CommandItem
-                              key={cat.ID}
-                              onSelect={() => setEditFormData({ ...editFormData, categoryId: cat.ID.toString() })}
-                            >
-                              <Check className={cn("mr-2 h-4 w-4", editFormData.categoryId === cat.ID.toString() ? "opacity-100" : "opacity-0")} />
-                              {cat.Name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">{t("models.gram")}</Label>
-                  <Input
-                    type="number"
-                    step="1.00"
-                    min="2.00"
-                    value={editFormData.gram}
-                    onChange={(e) => setEditFormData({ ...editFormData, gram: e.target.value })}
-                    required
-                    className={cn("text-left", isFieldChanged("gram", editFormData.gram) && "border-yellow-400 ring-1 ring-yellow-400/50")}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">{t("models.piece_count")}</Label>
-                  <Input
-                    type="number"
-                    step="1"
-                    value={editFormData.pieceCount}
-                    onChange={(e) => setEditFormData({ ...editFormData, pieceCount: e.target.value })}
-                    required
-                    className={cn("text-left", isFieldChanged("pieceCount", editFormData.pieceCount) && "border-yellow-400 ring-1 ring-yellow-400/50")}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold">{t("models.link")}</Label>
-                <Input
-                  value={editFormData.link}
-                  onChange={(e) => setEditFormData({ ...editFormData, link: e.target.value })}
-                  className={cn(isFieldChanged("link", editFormData.link) && "border-yellow-400 ring-1 ring-yellow-400/50")}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold">
-                  Model Dosyası (.STL)
-                </Label>
-                <div 
-                  className={cn(
-                    "border-2 border-dashed rounded-lg p-3 transition-all duration-200 flex flex-col items-center justify-center gap-1 cursor-pointer",
-                    (editFormData.file || isFieldChanged("file", editFormData.file)) ? "border-yellow-400 bg-yellow-400/5" : "border-muted/30",
-                    isDraggingEdit && "border-primary bg-primary/10 scale-[1.02]"
-                  )}
-                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingEdit(true); }}
-                  onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingEdit(false); }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsDraggingEdit(false);
-                    const file = e.dataTransfer.files?.[0];
-                    if (file && file.name.endsWith('.stl')) {
-                      setEditFormData({ ...editFormData, file });
-                    }
-                  }}
-                  onClick={() => document.getElementById('edit-model-file-input')?.click()}
-                >
-                  <input 
-                    id="edit-model-file-input"
-                    type="file" 
-                    className="hidden" 
-                    accept=".stl"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) setEditFormData({ ...editFormData, file });
-                    }}
-                  />
-                  {editFormData.file ? (
-                    <>
-                      <FileText className="h-6 w-6 text-primary" />
-                      <p className="text-[10px] font-medium truncate max-w-[150px]">{editFormData.file.name}</p>
-                    </>
-                  ) : (
-                    <>
-                      <FileUp className={cn("h-6 w-6 transition-colors", isDraggingEdit ? "text-primary" : "text-muted-foreground/50")} />
-                      <p className="text-[10px] text-muted-foreground">
-                        {isDraggingEdit ? "Buraya Bırakın" : (editingModel?.FilePath ? "Değiştir (.stl)" : "Ekle (.stl)")}
-                      </p>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="flex-1">
-                <X className="mr-2 h-4 w-4" /> {t("common.cancel")}
-              </Button>
-              <Button 
-                type="submit" 
-                className={cn("flex-1", updateSuccess && "bg-green-600 hover:bg-green-700")}
-                disabled={updating || updateSuccess}
-              >
-                {updating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : updateSuccess ? <Check className="mr-2 h-4 w-4" /> : <Check className="mr-2 h-4 w-4" />}
-                {updating ? t("models.saving") : updateSuccess ? t("common.updated") : t("models.edit_dialog.save")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="sm:max-w-[600px] bg-background/95 backdrop-blur-xl border-muted/30">
+        <DialogContent className="max-w-3xl bg-background/95 backdrop-blur-xl border-muted/30">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+            <DialogTitle className="text-2xl font-bold flex items-center gap-3">
               <Box className="h-6 w-6 text-primary" />
               {detailModel?.Name}
             </DialogTitle>
-            <DialogDescription>
-              {t("models.details.desc")}
-            </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-6 py-4">
-            <div className="grid grid-cols-3 gap-4 bg-muted/20 p-4 rounded-xl border border-muted/30">
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.category")}</p>
-                <p className="text-sm font-semibold">{detailModel?.CategoryName}</p>
+          <div className="grid gap-6 lg:grid-cols-2 py-4">
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-muted/30">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold tracking-widest text-muted-foreground">{t("models.category")}</p>
+                  <p className="text-sm font-semibold">{detailModel?.CategoryName}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold tracking-widest text-muted-foreground">{t("models.details.weight")}</p>
+                  <p className="text-sm font-semibold">{detailModel?.Gram}g</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold tracking-widest text-muted-foreground">{t("models.table.piece_count")}</p>
+                  <p className="text-sm font-semibold">{detailModel?.PieceCount}x</p>
+                </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.details.weight")}</p>
-                <p className="text-sm font-semibold">{detailModel?.Gram?.toFixed(2)}g</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.table.piece_count")}</p>
-                <p className="text-sm font-semibold">{(detailModel?.PieceCount || 1)} {t("models.piece")}</p>
+
+              <div className="space-y-1 p-4 bg-primary/5 rounded-xl border border-primary/10 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <ExternalLink className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-[10px] font-bold tracking-widest text-primary/70">{t("models.table.link")}</p>
+                      {detailModel?.Link ? (
+                        <a href={detailModel.Link} target="_blank" rel="noreferrer" className="text-sm font-medium hover:underline text-primary">
+                          {detailModel.Link}
+                        </a>
+                      ) : (
+                        <p className="text-sm font-medium text-muted-foreground italic">{t("common.no_data")}</p>
+                      )}
+                    </div>
+                  </div>
               </div>
             </div>
 
             <div className="space-y-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("models.details.preview")}</p>
-              <div className="rounded-xl overflow-hidden border border-muted/30 shadow-inner bg-black/5">
-                <ModelViewer filePath={detailModel?.FilePath} />
-              </div>
+              <p className="text-[10px] font-bold tracking-widest text-muted-foreground">{t("models.details.preview")}</p>
+              <ModelViewer filePath={detailModel?.FilePath} />
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md bg-background/95 backdrop-blur-xl border-muted/30">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+              <Edit3Icon className="h-6 w-6 text-primary" />
+              {t("common.edit")}
+            </DialogTitle>
+          </DialogHeader>
           
-          <DialogFooter className="sm:justify-between items-center border-t border-muted/20 pt-4">
-            <div className="flex items-center gap-2">
-              {detailModel?.Link ? (
-                <Button variant="outline" size="sm" asChild className="h-8 gap-2 border-primary/30 text-primary hover:bg-primary/5">
-                  <a href={detailModel.Link} target="_blank" rel="noreferrer">
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    {t("models.link")}
-                  </a>
-                </Button>
-              ) : (
-                <span className="text-[10px] text-muted-foreground italic px-2">{t("models.details.no_link")}</span>
-              )}
+          <form onSubmit={handleUpdate} className="space-y-5 py-4">
+            <div className="space-y-2">
+              <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.name")}</Label>
+              <Input
+                value={editFormData.name}
+                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                required
+              />
             </div>
-            <Button variant="outline" size="sm" onClick={() => setIsDetailOpen(false)} className="h-8 px-6">{t("common.close")}</Button>
-          </DialogFooter>
+
+            <div className="space-y-2">
+              <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.category")}</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    {editFormData.categoryId ? categories.find(c => c.ID.toString() === editFormData.categoryId)?.Name : t("common.select")}
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0">
+                  <Command>
+                    <CommandInput placeholder={t("common.search")} />
+                    <CommandList>
+                      <CommandGroup>
+                        {categories.map(c => (
+                          <CommandItem key={c.ID} onSelect={() => setEditFormData({ ...editFormData, categoryId: c.ID.toString() })}>
+                            <Check className={cn("mr-2 h-4 w-4", editFormData.categoryId === c.ID.toString() ? "opacity-100" : "opacity-0")} />
+                            {c.Name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.gram")}</Label>
+                <Input
+                  type="number"
+                  value={editFormData.gram}
+                  onChange={(e) => setEditFormData({ ...editFormData, gram: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.piece_count")}</Label>
+                <Input
+                  type="number"
+                  value={editFormData.pieceCount}
+                  onChange={(e) => setEditFormData({ ...editFormData, pieceCount: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="submit" disabled={updating} className="w-full">
+                {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : t("common.update")}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

@@ -21,6 +21,7 @@
     "category_not_found": "Kategori bulunamadı.",
     "no_category": "Kategorisiz",
     "add_category": "Kategori Ekle",
+    "clear_filters": "Filtreleri Temizle",
     "notifications": {
       "added": "Başarıyla eklendi",
       "deleted": "Silindi",
@@ -29,7 +30,13 @@
       "cat_delete_error": "Kategori silinemedi",
       "cat_in_use": "Kategori kullanımda olduğu için silinemez",
       "updated": "Başarıyla güncellendi"
-    }
+    },
+    "is_sub_product": "Alt ürün mü?",
+    "multiplier": "Çarpan",
+    "cost": "Maliyet",
+    "usage_per_unit": "Birim Başı Kullanım (%)",
+    "registration_date": "Kayıt Tarihi",
+    "no_link": "Bağlantı yok"
   },
   "nav": {
     "dashboard": "Panel",
@@ -103,7 +110,11 @@
     },
     "status": {
       "in_stock": "Stokta",
-      "low_stock": "Azaldı"
+      "low_stock": "Azaldı",
+      "empty": "Bitti",
+      "az": "Az",
+      "orta": "Orta",
+      "dolu": "Dolu"
     }
   },
   "models": {
