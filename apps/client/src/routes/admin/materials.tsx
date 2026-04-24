@@ -17,7 +17,9 @@ import {
   Edit3,
   AlertCircle,
   Layers,
-  Minus
+  Minus,
+  Filter,
+  FilterX
 } from "lucide-react"
 import { Button } from "@/ui/controls/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/controls/card"
@@ -547,15 +549,15 @@ export default function MaterialsPage() {
               ) : (
                 <Table>
                   <TableHeader className="bg-muted/10">
-                    <TableRow>
-                      <TableHead className="px-6 w-[20%]">{t("models.table.name")}</TableHead>
-                      <TableHead className="text-center w-[15%]">
+                    <TableRow className="hover:bg-transparent border-muted/20">
+                      <TableHead className="font-semibold px-6 w-[25%]">{t("models.table.name")}</TableHead>
+                      <TableHead className="font-semibold text-center w-[20%]">
                         <div className="flex items-center justify-center gap-1">
                           {t("common.category")}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-4 w-4 p-0 hover:bg-muted/30">
-                                <ChevronDown className="h-3 w-3" />
+                              <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-muted/30">
+                                <Filter className={cn("h-3 w-3", filterCategory !== "all" && "text-primary fill-primary")} />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="center" className="w-40">
@@ -563,7 +565,7 @@ export default function MaterialsPage() {
                                 {t("common.all")} {filterCategory === "all" && <Check className="h-3 w-3" />}
                               </DropdownMenuItem>
                               {categories.map((cat) => (
-                                <DropdownMenuItem key={cat.ID} onClick={() => setFilterCategory(cat.ID.toString())} className="flex items-center justify-between">
+                                <DropdownMenuItem key={cat.ID} onClick={() => setFilterCategory(cat.ID.toString())} className="flex items-center justify-between text-xs">
                                   {cat.Name} {filterCategory === cat.ID.toString() && <Check className="h-3 w-3" />}
                                 </DropdownMenuItem>
                               ))}
@@ -571,15 +573,15 @@ export default function MaterialsPage() {
                           </DropdownMenu>
                         </div>
                       </TableHead>
-                      <TableHead className="text-center w-[15%]">{t("materials.table.unit_price")}</TableHead>
-                      <TableHead className="text-center w-[15%]">{t("materials.table.unit_usage")}</TableHead>
-                      <TableHead className="text-center w-[25%]">
+                      <TableHead className="font-semibold text-center w-[15%]">{t("materials.table.unit_price")}</TableHead>
+                      <TableHead className="font-semibold text-center w-[15%] whitespace-nowrap">{t("materials.table.unit_usage")}</TableHead>
+                      <TableHead className="font-semibold text-center w-[15%]">
                         <div className="flex items-center justify-center gap-1">
                           {t("materials.table.current")}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-4 w-4 p-0 hover:bg-muted/30">
-                                <ChevronDown className="h-3 w-3" />
+                              <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-muted/30">
+                                <Filter className={cn("h-3 w-3", filterStatus !== "all" && "text-primary fill-primary")} />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="center" className="w-40">
@@ -604,15 +606,16 @@ export default function MaterialsPage() {
                           </DropdownMenu>
                         </div>
                       </TableHead>
-                      <TableHead className="px-6 text-right w-[10%]">
+                      <TableHead className="w-[10%] px-6 text-right">
                         {(filterCategory !== "all" || filterStatus !== "all") && (
                           <Button 
                             variant="ghost" 
-                            size="sm" 
+                            size="icon" 
+                            className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
                             onClick={() => { setFilterCategory("all"); setFilterStatus("all"); }}
-                            className="h-6 px-2 text-[10px] text-primary hover:text-primary/80"
+                            title={t("common.clear_filters")}
                           >
-                            {t("common.clear")}
+                            <FilterX className="h-3 w-3" />
                           </Button>
                         )}
                       </TableHead>
@@ -638,18 +641,18 @@ export default function MaterialsPage() {
                           <TableCell className="text-center font-bold">{(m.TotalPrice / m.Quantity).toFixed(2)}</TableCell>
                           <TableCell className="text-center font-bold">{(m.UsagePerUnit || 50)}%</TableCell>
                           <TableCell className="text-center">
-                            <div className="flex flex-col items-center gap-1.5 w-full mx-auto max-w-[120px]">
-                              <div className="flex justify-between w-full text-[9px] font-bold tracking-tight text-muted-foreground/80">
+                            <div className="flex flex-col items-center gap-1 w-full mx-auto max-w-[100px]">
+                              <div className="flex justify-between w-full text-[9px] font-bold tracking-tighter text-muted-foreground/60 uppercase">
                                 <span>{m.Quantity} Adet</span>
-                                <span>Adet</span>
+                                <span>Envanter</span>
                               </div>
-                              <div className="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden">
+                              <div className="h-1.5 w-full bg-muted/20 rounded-full overflow-hidden border border-muted/10">
                                 <div 
                                   className={cn(
                                     "h-full rounded-full transition-all duration-700",
-                                    (m.Quantity < 10) ? 'bg-destructive' : 'bg-primary'
+                                    (m.Quantity < 10) ? 'bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.4)]' : 'bg-primary shadow-[0_0_8px_rgba(var(--primary),0.4)]'
                                   )}
-                                  style={{ width: `${Math.min(100, (m.Quantity / 100) * 100)}%` }}
+                                  style={{ width: `${Math.min(100, (m.Quantity / 500) * 100)}%` }}
                                 />
                               </div>
                             </div>
@@ -803,7 +806,7 @@ export default function MaterialsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("common.usage_per_unit")} (%)</Label>
+              <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("common.usage_per_unit")}</Label>
               <Input
                 type="number"
                 step="5"

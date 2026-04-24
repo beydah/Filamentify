@@ -22,6 +22,8 @@
     "no_category": "No Category",
     "add_category": "Add Category",
     "clear_filters": "Clear Filters",
+    "drag_drop": "Drag & Drop",
+    "invalid_file_type": "Invalid file type",
     "notifications": {
       "added": "Added successfully",
       "deleted": "Deleted",
@@ -197,7 +199,7 @@
     "image": "Image URL",
     "image_front": "Front Image",
     "image_back": "Back Image",
-    "profit_multiplier": "Profit Multiplier",
+    "profit_multiplier": "Multiplier",
     "select_materials": "Materials",
     "add_material": "Add Material",
     "select_models": "Models",
@@ -214,6 +216,7 @@
     "select_filaments": "Select Filaments",
     "add_filament": "Add Filament",
     "categories": "Product Categories",
-    "categories_desc": "Group your products."
+    "categories_desc": "Group your products.",
+    "delete_parent_error": "This product cannot be deleted because it has linked sub-products."
   }
 }

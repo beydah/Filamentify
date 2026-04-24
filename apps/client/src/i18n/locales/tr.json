@@ -22,6 +22,8 @@
     "no_category": "Kategorisiz",
     "add_category": "Kategori Ekle",
     "clear_filters": "Filtreleri Temizle",
+    "drag_drop": "Sürükle & Bırak",
+    "invalid_file_type": "Geçersiz dosya türü",
     "notifications": {
       "added": "Başarıyla eklendi",
       "deleted": "Silindi",
@@ -197,7 +199,7 @@
     "image": "Görsel URL",
     "image_front": "Ön Görsel",
     "image_back": "Arka Görsel",
-    "profit_multiplier": "Kâr Çarpanı",
+    "profit_multiplier": "Çarpan",
     "select_materials": "Malzeme Seçimi",
     "add_material": "Malzeme Ekle",
     "select_models": "Model Seçimi",
@@ -214,6 +216,7 @@
     "select_filaments": "Filament Seçimi",
     "add_filament": "Filament Ekle",
     "categories": "Ürün Kategorileri",
-    "categories_desc": "Ürünlerinizi gruplandırın."
+    "categories_desc": "Ürünlerinizi gruplandırın.",
+    "delete_parent_error": "Bu ürüne bağlı alt ürünler olduğu için silinemez."
   }
 }

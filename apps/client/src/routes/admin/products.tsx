@@ -22,7 +22,9 @@ import {
   ChevronsUpDown,
   Tag,
   ExternalLink,
-  Info
+  Info,
+  Upload,
+  FileImage
 } from "lucide-react"
 import { Button } from "@/ui/controls/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/controls/card"
@@ -127,6 +129,7 @@ export default function ProductsPage() {
   const [isSubProduct, setIsSubProduct] = React.useState(false)
   const [loading, setLoading] = React.useState(true)
   const [submitting, setSubmitting] = React.useState(false)
+  const [deletingParentId, setDeletingParentId] = React.useState<number | null>(null)
 
   // Form State
   const [formData, setFormData] = React.useState({
@@ -286,6 +289,26 @@ export default function ProductsPage() {
     }
   }
 
+  const handleDeleteParentProduct = async (id: number) => {
+    const hasSubProducts = products.some(p => p.ParentID === id)
+    if (hasSubProducts) {
+      toast.error(t("products.delete_parent_error") || "Bu ürüne bağlı alt ürünler olduğu için silinemez.")
+      return
+    }
+    setDeletingParentId(id)
+    try {
+      const response = await fetch(`http://localhost:3001/api/products/${id}`, {
+        method: "DELETE"
+      })
+      if (response.ok) {
+        toast.success(t("common.notifications.deleted"))
+        fetchData()
+      }
+    } finally {
+      setDeletingParentId(null)
+    }
+  }
+
   const handleEditClick = (p: Product) => {
     setSelectedProduct(p)
     setOriginalProduct(p)
@@ -344,6 +367,101 @@ export default function ProductsPage() {
 
   const filamentTotalPercentage = formData.selectedFilaments.reduce((acc, f) => acc + f.quantity, 0)
   const isFilamentTotalValid = filamentTotalPercentage === 100
+
+  // Image Upload Helper
+  const ImageUploadField = ({ 
+    label, 
+    file, 
+    setFile, 
+    id 
+  }: { 
+    label: string, 
+    file: File | null, 
+    setFile: (f: File | null) => void, 
+    id: string 
+  }) => {
+    const [isDragging, setIsDragging] = React.useState(false)
+    const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+    const handleDragOver = (e: React.DragEvent) => {
+      e.preventDefault()
+      setIsDragging(true)
+    }
+
+    const handleDragLeave = () => {
+      setIsDragging(false)
+    }
+
+    const handleDrop = (e: React.DragEvent) => {
+      e.preventDefault()
+      setIsDragging(false)
+      const droppedFile = e.dataTransfer.files[0]
+      if (droppedFile && droppedFile.type.startsWith('image/')) {
+        setFile(droppedFile)
+      } else {
+        toast.error(t("common.invalid_file_type") || "Geçersiz dosya tipi.")
+      }
+    }
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const selectedFile = e.target.files?.[0]
+      if (selectedFile) setFile(selectedFile)
+    }
+
+    return (
+      <div className="space-y-2">
+        <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{label}</Label>
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={cn(
+            "relative h-24 w-full rounded-xl border-2 border-dashed transition-all duration-200 cursor-pointer flex flex-col items-center justify-center gap-2 overflow-hidden",
+            isDragging ? "border-primary bg-primary/5 scale-[0.98]" : "border-muted/30 hover:border-muted/50 bg-muted/10",
+            file ? "border-solid border-primary/40 bg-background" : ""
+          )}
+        >
+          <Input 
+            type="file" 
+            ref={fileInputRef}
+            className="hidden" 
+            accept="image/png, image/jpeg, image/webp" 
+            onChange={handleChange} 
+          />
+          
+          {file ? (
+            <>
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm opacity-0 hover:opacity-100 transition-opacity">
+                <FileImage className="h-6 w-6 text-primary" />
+              </div>
+              <img 
+                src={URL.createObjectURL(file)} 
+                alt="Preview" 
+                className="h-full w-full object-cover"
+              />
+              <Button
+                variant="destructive"
+                size="icon"
+                className="absolute top-1 right-1 h-6 w-6 rounded-full shadow-lg"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setFile(null)
+                }}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <Upload className={cn("h-5 w-5", isDragging ? "text-primary animate-bounce" : "text-muted-foreground")} />
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">{t("common.drag_drop") || "Sürükle bırak"}</span>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-8 p-6 pt-2">
@@ -423,9 +541,23 @@ export default function ProductsPage() {
                                   <CommandEmpty>{t("common.no_data")}</CommandEmpty>
                                   <CommandGroup>
                                     {products.filter(p => !p.ParentID).map(p => (
-                                      <CommandItem key={p.ID} onSelect={() => { setFormData({...formData, parentId: p.ID.toString()}); setOpenParentSelect(false); }}>
-                                        <Check className={cn("mr-2 h-4 w-4", formData.parentId === p.ID.toString() ? "opacity-100" : "opacity-0")} />
-                                        {p.Name}
+                                      <CommandItem key={p.ID} onSelect={() => { setFormData({...formData, parentId: p.ID.toString()}); setOpenParentSelect(false); }} className="flex items-center justify-between group">
+                                        <div className="flex items-center">
+                                          <Check className={cn("mr-2 h-4 w-4", formData.parentId === p.ID.toString() ? "opacity-100" : "opacity-0")} />
+                                          {p.Name}
+                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 transition-all"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleDeleteParentProduct(p.ID)
+                                          }}
+                                          disabled={deletingParentId === p.ID}
+                                        >
+                                          {deletingParentId === p.ID ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                        </Button>
                                       </CommandItem>
                                     ))}
                                   </CommandGroup>
@@ -443,14 +575,22 @@ export default function ProductsPage() {
                             required 
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("products.image_front")}</Label>
-                          <Input type="file" onChange={(e) => setFormData({...formData, imageFront: e.target.files?.[0] || null})} />
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <ImageUploadField 
+                            label={t("products.image_front")} 
+                            file={formData.imageFront} 
+                            setFile={(f) => setFormData({...formData, imageFront: f})} 
+                            id="imageFront" 
+                          />
+                          <ImageUploadField 
+                            label={t("products.image_back")} 
+                            file={formData.imageBack} 
+                            setFile={(f) => setFormData({...formData, imageBack: f})} 
+                            id="imageBack" 
+                          />
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("products.image_back")}</Label>
-                          <Input type="file" onChange={(e) => setFormData({...formData, imageBack: e.target.files?.[0] || null})} />
-                        </div>
+
                         <div className={cn("space-y-3 p-4 rounded-xl bg-muted/20 border transition-colors", !isFilamentTotalValid ? "border-yellow-500/50" : "border-muted/10")}>
                           <Label className="text-xs font-bold tracking-widest flex items-center justify-between">
                             <span className="flex items-center gap-2"><Box className="h-3 w-3 text-primary" />{t("products.select_filaments")}</span>
@@ -525,55 +665,57 @@ export default function ProductsPage() {
                             onChange={(e) => setFormData({...formData, description: e.target.value})} 
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("products.profit_multiplier")}</Label>
-                          <Input 
-                            type="number" 
-                            step="0.1" 
-                            placeholder="1.5" 
-                            value={formData.profitMultiplier} 
-                            onChange={(e) => setFormData({...formData, profitMultiplier: e.target.value})} 
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("common.category")}</Label>
-                          <Popover open={openCategorySelect} onOpenChange={setOpenCategorySelect}>
-                            <PopoverTrigger asChild>
-                              <Button variant="outline" className="w-full justify-between h-10 text-xs">
-                                {categories.find(c => c.ID.toString() === formData.categoryId)?.Name || t("common.select")}
-                                <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[200px] p-0">
-                              <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
-                                <span className="text-[10px] font-bold tracking-wider text-muted-foreground">{t("common.category")}</span>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-6 w-6 p-0 text-primary hover:bg-primary/10"
-                                  onClick={() => {
-                                    setOpenCategorySelect(false)
-                                    document.getElementById('category-management')?.scrollIntoView({ behavior: 'smooth' })
-                                  }}
-                                >
-                                  <Plus className="h-3 w-3" />
+                        <div className="grid grid-cols-10 gap-4">
+                          <div className="col-span-6 space-y-2">
+                            <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("common.category")}</Label>
+                            <Popover open={openCategorySelect} onOpenChange={setOpenCategorySelect}>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-between h-10 text-xs">
+                                  {categories.find(c => c.ID.toString() === formData.categoryId)?.Name || t("common.select")}
+                                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
                                 </Button>
-                              </div>
-                              <Command>
-                                <CommandInput placeholder={t("common.search")} />
-                                <CommandList>
-                                  <CommandGroup>
-                                    {categories.map(c => (
-                                      <CommandItem key={c.ID} onSelect={() => { setFormData({...formData, categoryId: c.ID.toString()}); setOpenCategorySelect(false); }}>
-                                        <Check className={cn("mr-2 h-4 w-4", formData.categoryId === c.ID.toString() ? "opacity-100" : "opacity-0")} />
-                                        {c.Name}
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[200px] p-0">
+                                <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
+                                  <span className="text-[10px] font-bold tracking-wider text-muted-foreground">{t("common.category")}</span>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6 p-0 text-primary hover:bg-primary/10"
+                                    onClick={() => {
+                                      setOpenCategorySelect(false)
+                                      document.getElementById('category-management')?.scrollIntoView({ behavior: 'smooth' })
+                                    }}
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                                <Command>
+                                  <CommandInput placeholder={t("common.search")} />
+                                  <CommandList>
+                                    <CommandGroup>
+                                      {categories.map(c => (
+                                        <CommandItem key={c.ID} onSelect={() => { setFormData({...formData, categoryId: c.ID.toString()}); setOpenCategorySelect(false); }}>
+                                          <Check className={cn("mr-2 h-4 w-4", formData.categoryId === c.ID.toString() ? "opacity-100" : "opacity-0")} />
+                                          {c.Name}
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  </CommandList>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div className="col-span-4 space-y-2">
+                            <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("products.profit_multiplier")}</Label>
+                            <Input 
+                              type="number" 
+                              step="0.1" 
+                              placeholder="1.5" 
+                              value={formData.profitMultiplier} 
+                              onChange={(e) => setFormData({...formData, profitMultiplier: e.target.value})} 
+                            />
+                          </div>
                         </div>
                         <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
                           <Label className="text-xs font-bold tracking-widest flex items-center gap-2"><TrendingUp className="h-3 w-3 text-primary" />{t("products.select_models")}</Label>
@@ -631,6 +773,7 @@ export default function ProductsPage() {
           </Card>
 
           <CategoryCard
+            id="category-management"
             title={t("common.add_category")}
             description={t("products.categories_desc")}
             categories={categories}
@@ -683,35 +826,41 @@ export default function ProductsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {products.filter(p => p.ParentID).map((p) => (
-                      <TableRow key={p.ID} className="hover:bg-muted/5 transition-colors border-muted/10 h-16">
-                        <TableCell className="px-6 font-medium">
-                          {p.Name} <span className="text-muted-foreground/60 text-xs font-normal">({p.ParentName})</span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="px-2 py-0.5 rounded-full bg-muted/20 text-[11px]">
-                            {p.CategoryName || "-"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">{p.ProfitMultiplier}x</TableCell>
-                        <TableCell className="text-center font-bold">0.00</TableCell>
-                        <TableCell className="text-center font-bold">{p.Price}</TableCell>
-                        <TableCell className="px-6 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted/20">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40">
-                              <DropdownMenuItem onClick={() => { setSelectedProduct(p); setIsDetailOpen(true); }}><Eye className="mr-2 h-4 w-4" />{t("common.details")}</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEditClick(p)}><Edit3 className="mr-2 h-4 w-4" />{t("common.edit")}</DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteProduct(p.ID)}><Trash2 className="mr-2 h-4 w-4" />{t("common.delete")}</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {products.filter(p => p.ParentID).map((p) => {
+                      const parent = products.find(parent => parent.ID === p.ParentID)
+                      return (
+                        <TableRow key={p.ID} className="hover:bg-muted/5 transition-colors border-muted/10 h-16">
+                          <TableCell className="px-6 font-medium">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold">{p.Name} {p.ParentName}</span>
+                              <span className="text-[10px] text-muted-foreground/50 tracking-wide uppercase">Alt Ürün</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="px-2 py-0.5 rounded-full bg-muted/20 text-[11px]">
+                              {parent?.CategoryName || p.CategoryName || "-"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center">{p.ProfitMultiplier}x</TableCell>
+                          <TableCell className="text-center font-bold">0.00</TableCell>
+                          <TableCell className="text-center font-bold">{p.Price}</TableCell>
+                          <TableCell className="px-6 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted/20">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-40">
+                                <DropdownMenuItem onClick={() => { setSelectedProduct(p); setIsDetailOpen(true); }}><Eye className="mr-2 h-4 w-4" />{t("common.details")}</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEditClick(p)}><Edit3 className="mr-2 h-4 w-4" />{t("common.edit")}</DropdownMenuItem>
+                                <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteProduct(p.ID)}><Trash2 className="mr-2 h-4 w-4" />{t("common.delete")}</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               )}
@@ -733,10 +882,35 @@ export default function ProductsPage() {
           </DialogHeader>
           
           <div className="grid gap-6 py-4">
+            {selectedProduct?.ParentID && (
+              <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 space-y-3">
+                <div className="flex items-center gap-2 text-primary">
+                  <Package className="h-4 w-4" />
+                  <span className="text-xs font-bold uppercase tracking-wider">{t("products.parent_product")}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">{t("products.name")}</p>
+                    <p className="text-sm font-semibold">{selectedProduct.ParentName}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">{t("common.category")}</p>
+                    <p className="text-sm font-semibold">
+                      {products.find(parent => parent.ID === selectedProduct.ParentID)?.CategoryName || "-"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-muted/30">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">{t("common.category")}</p>
-                <p className="text-sm font-semibold">{selectedProduct?.CategoryName || "-"}</p>
+                <p className="text-sm font-semibold">
+                  {selectedProduct?.ParentID 
+                    ? products.find(parent => parent.ID === selectedProduct.ParentID)?.CategoryName 
+                    : selectedProduct?.CategoryName || "-"}
+                </p>
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">{t("products.profit_multiplier")}</p>
@@ -763,17 +937,64 @@ export default function ProductsPage() {
               <div className="p-3 bg-muted/10 rounded-xl border border-muted/20 text-center">
                 <Layers className="h-4 w-4 mx-auto mb-1 text-primary/60" />
                 <p className="text-[10px] font-bold text-muted-foreground uppercase">{t("nav.materials")}</p>
-                <p className="text-xs font-bold">{selectedProduct?.materials?.length || 0}</p>
+                <p className="text-xs font-bold">
+                  {(selectedProduct?.materials?.length || 0) + (products.find(p => p.ID === selectedProduct?.ParentID)?.materials?.length || 0)}
+                </p>
               </div>
               <div className="p-3 bg-muted/10 rounded-xl border border-muted/20 text-center">
                 <TrendingUp className="h-4 w-4 mx-auto mb-1 text-primary/60" />
                 <p className="text-[10px] font-bold text-muted-foreground uppercase">{t("nav.models")}</p>
-                <p className="text-xs font-bold">{selectedProduct?.models?.length || 0}</p>
+                <p className="text-xs font-bold">
+                  {(selectedProduct?.models?.length || 0) + (products.find(p => p.ID === selectedProduct?.ParentID)?.models?.length || 0)}
+                </p>
               </div>
               <div className="p-3 bg-muted/10 rounded-xl border border-muted/20 text-center">
                 <Box className="h-4 w-4 mx-auto mb-1 text-primary/60" />
                 <p className="text-[10px] font-bold text-muted-foreground uppercase">{t("nav.filament")}</p>
-                <p className="text-xs font-bold">{selectedProduct?.filaments?.length || 0}</p>
+                <p className="text-xs font-bold">
+                  {(selectedProduct?.filaments?.length || 0) + (products.find(p => p.ID === selectedProduct?.ParentID)?.filaments?.length || 0)}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase flex items-center gap-2">
+                <Package className="h-3 w-3" />
+                {t("common.details")}
+              </h4>
+              <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 scrollbar-none">
+                {/* Parent Items */}
+                {products.find(p => p.ID === selectedProduct?.ParentID)?.materials?.map(m => (
+                  <div key={`pm-${m.ID}`} className="flex items-center justify-between p-2 rounded-lg bg-muted/10 border border-muted/20">
+                    <span className="text-xs">{m.Name} (Üst)</span>
+                    <span className="text-[10px] font-bold">{m.Quantity} Adet</span>
+                  </div>
+                ))}
+                {products.find(p => p.ID === selectedProduct?.ParentID)?.models?.map(m => (
+                  <div key={`pmo-${m.ID}`} className="flex items-center justify-between p-2 rounded-lg bg-muted/10 border border-muted/20">
+                    <span className="text-xs">{m.Name} (Üst)</span>
+                    <span className="text-[10px] font-bold">{m.Quantity} Adet</span>
+                  </div>
+                ))}
+                {/* Sub Items */}
+                {selectedProduct?.materials?.map(m => (
+                  <div key={`sm-${m.ID}`} className="flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10">
+                    <span className="text-xs">{m.Name}</span>
+                    <span className="text-[10px] font-bold">{m.Quantity} Adet</span>
+                  </div>
+                ))}
+                {selectedProduct?.models?.map(m => (
+                  <div key={`smo-${m.ID}`} className="flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10">
+                    <span className="text-xs">{m.Name}</span>
+                    <span className="text-[10px] font-bold">{m.Quantity} Adet</span>
+                  </div>
+                ))}
+                {selectedProduct?.filaments?.map(f => (
+                  <div key={`sf-${f.ID}`} className="flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10">
+                    <span className="text-xs">{f.Name}</span>
+                    <span className="text-[10px] font-bold">%{f.Quantity}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
