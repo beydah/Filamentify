@@ -1025,42 +1025,63 @@ export default function FilamentPage() {
                 </Popover>
               </div>
             </div>
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsEditDialogOpen(false)}
-                className="flex-1"
-                disabled={updating || updateSuccess}
-              >
-                <X className="mr-2 h-4 w-4" />
-                {t("common.cancel")}
-              </Button>
-              <Button 
-                type="submit" 
-                className={cn(
-                  "flex-1 transition-all duration-300",
-                  updateSuccess && "bg-green-600 hover:bg-green-700 text-white"
-                )} 
-                disabled={updating || updateSuccess}
-              >
-                {updating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t("filament.saving")}
-                  </>
-                ) : updateSuccess ? (
-                  <>
-                    <Check className="mr-2 h-4 w-4" />
-                    {t("common.updated")}
-                  </>
+            <DialogFooter className="sm:justify-between items-center border-t border-muted/20 pt-4 gap-4 sm:gap-0">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {editFormData.link ? (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    asChild 
+                    className="h-8 gap-2 border-primary/30 text-primary hover:bg-primary/5 flex-1 sm:flex-initial"
+                  >
+                    <a href={editFormData.link} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      {t("materials.link")}
+                    </a>
+                  </Button>
                 ) : (
-                  <>
-                    <Check className="mr-2 h-4 w-4" />
-                    {t("filament.edit_dialog.save")}
-                  </>
+                  <span className="text-[10px] text-muted-foreground italic px-2">{t("models.details.no_link")}</span>
                 )}
-              </Button>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setIsEditDialogOpen(false)}
+                  className="flex-1 sm:px-6 h-8"
+                  disabled={updating || updateSuccess}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  {t("common.cancel")}
+                </Button>
+                <Button 
+                  type="submit" 
+                  size="sm"
+                  className={cn(
+                    "flex-1 sm:px-6 h-8 transition-all duration-300",
+                    updateSuccess && "bg-green-600 hover:bg-green-700 text-white"
+                  )} 
+                  disabled={updating || updateSuccess}
+                >
+                  {updating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t("filament.saving")}
+                    </>
+                  ) : updateSuccess ? (
+                    <>
+                      <Check className="mr-2 h-4 w-4" />
+                      {t("common.updated")}
+                    </>
+                  ) : (
+                    <>
+                      <Check className="mr-2 h-4 w-4" />
+                      {t("filament.edit_dialog.save")}
+                    </>
+                  )}
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </DialogContent>

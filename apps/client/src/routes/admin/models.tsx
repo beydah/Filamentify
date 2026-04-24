@@ -708,7 +708,7 @@ export default function ModelsPage() {
                 <Table>
                   <TableHeader className="bg-muted/10">
                   <TableRow className="hover:bg-transparent border-muted/20">
-                    <TableHead className="font-semibold px-6 w-[20%]">{t("models.table.name")}</TableHead>
+                    <TableHead className="font-semibold px-6 w-[30%]">{t("models.table.name")}</TableHead>
                     <TableHead className="font-semibold text-center w-[25%]">
                       <div className="flex items-center justify-center gap-1">
                         {t("models.table.category")}
@@ -727,9 +727,9 @@ export default function ModelsPage() {
                         </DropdownMenu>
                       </div>
                     </TableHead>
-                    <TableHead className="font-semibold text-center w-[10%]">{t("models.table.gram")}</TableHead>
-                    <TableHead className="font-semibold text-center w-[10%]">{t("models.table.piece_count")}</TableHead>
-                    <TableHead className="font-semibold text-center w-[25%]">{t("models.table.link")}</TableHead>
+                    <TableHead className="font-semibold text-center w-[12%]">{t("models.table.gram")}</TableHead>
+                    <TableHead className="font-semibold text-center w-[13%]">{t("models.table.piece_count")}</TableHead>
+                    <TableHead className="font-semibold text-center w-[10%]">{t("models.table.link")}</TableHead>
                     <TableHead className="w-[10%] px-6 text-right">
                       {filterCategory !== "all" && (
                         <Button 

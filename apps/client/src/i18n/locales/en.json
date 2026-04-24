@@ -99,6 +99,10 @@
       "color": "Color",
       "price": "Price",
       "purchase_date": "Purchase Date"
+    },
+    "status": {
+      "in_stock": "In Stock",
+      "low_stock": "Low Stock"
     }
   },
   "models": {

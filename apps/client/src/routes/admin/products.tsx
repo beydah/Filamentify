@@ -119,6 +119,7 @@ export default function ProductsPage() {
   const [newCategory, setNewCategory] = React.useState("")
   const [addingCategory, setAddingCategory] = React.useState(false)
   const [deletingCategoryId, setDeletingCategoryId] = React.useState<number | null>(null)
+  const [openCategory, setOpenCategory] = React.useState(false)
   const [isSubProduct, setIsSubProduct] = React.useState(false)
   const [loading, setLoading] = React.useState(true)
   const [submitting, setSubmitting] = React.useState(false)
@@ -385,68 +386,9 @@ export default function ProductsPage() {
         </h1>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+      <div className="grid gap-8 lg:grid-cols-12">
         {/* Left Column: Form & Category Management */}
-        <div className="xl:col-span-1 space-y-8">
-          {/* Add Category Section */}
-          <Card id="category-management" className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
-            <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
-              <div className="space-y-1.5">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Tag className="h-4 w-4 text-primary" />
-                  {t("common.add_category")}
-                </CardTitle>
-                <CardDescription>
-                  {t("products.categories_desc")}
-                </CardDescription>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
-                className="h-8 w-8 p-0"
-              >
-                {isCategoriesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </Button>
-            </CardHeader>
-            <div className={cn(
-              "grid transition-all duration-300 ease-in-out",
-              isCategoriesOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-            )}>
-              <div className="overflow-hidden">
-                <CardContent className="pb-6">
-                  <form onSubmit={handleAddCategory} className="flex gap-2">
-                    <Input
-                      placeholder={t("filament.add_category_placeholder")}
-                      value={newCategory}
-                      onChange={(e) => setNewCategory(e.target.value)}
-                      className="bg-background/40 border-muted/30"
-                    />
-                    <Button type="submit" size="icon" disabled={addingCategory || !newCategory.trim()}>
-                      {addingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                    </Button>
-                  </form>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {categories.map((cat) => (
-                      <div key={cat.ID} className="group flex items-center gap-1 bg-background/60 border border-muted/20 px-2 py-1 rounded-md hover:border-primary/30 transition-all">
-                        <span className="text-xs font-medium">{cat.Name}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-4 w-4 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 transition-all"
-                          onClick={() => handleDeleteCategory(cat.ID)}
-                          disabled={deletingCategoryId === cat.ID}
-                        >
-                          {deletingCategoryId === cat.ID ? <Loader2 className="h-2 w-2 animate-spin" /> : <X className="h-2 w-2" />}
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </div>
-            </div>
-          </Card>
-
+        <div className="lg:col-span-4 space-y-8">
           {/* Add Product Form */}
           <Card className="border-muted/40 bg-card/40 backdrop-blur-md shadow-xl overflow-hidden transition-all duration-300">
             <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
@@ -850,10 +792,69 @@ export default function ProductsPage() {
               </div>
             </div>
           </Card>
+
+          {/* Add Category Section */}
+          <Card id="category-management" className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
+            <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+              <div className="space-y-1.5">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-primary" />
+                  {t("common.add_category")}
+                </CardTitle>
+                <CardDescription>
+                  {t("products.categories_desc")}
+                </CardDescription>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
+                className="h-8 w-8 p-0"
+              >
+                {isCategoriesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CardHeader>
+            <div className={cn(
+              "grid transition-all duration-300 ease-in-out",
+              isCategoriesOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+            )}>
+              <div className="overflow-hidden">
+                <CardContent className="pb-6">
+                  <form onSubmit={handleAddCategory} className="flex gap-2">
+                    <Input
+                      placeholder={t("filament.add_category_placeholder")}
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      className="bg-background/40 border-muted/30"
+                    />
+                    <Button type="submit" size="icon" disabled={addingCategory || !newCategory.trim()}>
+                      {addingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    </Button>
+                  </form>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {categories.map((cat) => (
+                      <div key={cat.ID} className="group flex items-center gap-1 bg-background/60 border border-muted/20 px-2 py-1 rounded-md hover:border-primary/30 transition-all">
+                        <span className="text-xs font-medium">{cat.Name}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 transition-all"
+                          onClick={() => handleDeleteCategory(cat.ID)}
+                          disabled={deletingCategoryId === cat.ID}
+                        >
+                          {deletingCategoryId === cat.ID ? <Loader2 className="h-2 w-2 animate-spin" /> : <X className="h-2 w-2" />}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </div>
+            </div>
+          </Card>
         </div>
 
         {/* Right Column: Inventory Table */}
-        <div className="xl:col-span-3">
+        <div className="lg:col-span-8">
           <Card className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg h-full transition-all duration-300">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
