@@ -622,7 +622,7 @@ export default function FilamentPage() {
               <div className="space-y-1.5">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Tag className="h-4 w-4 text-primary" />
-                  {t("filament.categories")}
+                  {t("common.add_category")}
                 </CardTitle>
                 <CardDescription>
                   {t("filament.categories_desc")}

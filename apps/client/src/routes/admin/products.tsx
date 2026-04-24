@@ -331,45 +331,21 @@ export default function ProductsPage() {
                         />
                       </div>
                       <div className="space-y-2">
+                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.description")}</Label>
+                        <Input
+                          placeholder={t("products.description")}
+                          value={formData.description}
+                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                          className="bg-background/40 border-muted/30 h-10"
+                        />
+                      </div>
+                      <div className="space-y-2">
                         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.profit_multiplier")}</Label>
                         <Input
                           type="number"
                           step="0.1"
                           value={formData.profitMultiplier}
                           onChange={(e) => setFormData({ ...formData, profitMultiplier: e.target.value })}
-                          className="bg-background/40 border-muted/30 h-10"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.description")}</Label>
-                      <Input
-                        placeholder={t("products.description")}
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        className="bg-background/40 border-muted/30 h-10"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.price")}</Label>
-                        <Input
-                          type="number"
-                          value={formData.price}
-                          onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                          required
-                          className="bg-background/40 border-muted/30 h-10"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("products.stock")}</Label>
-                        <Input
-                          type="number"
-                          value={formData.stock}
-                          onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                          required
                           className="bg-background/40 border-muted/30 h-10"
                         />
                       </div>

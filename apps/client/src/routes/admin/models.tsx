@@ -505,12 +505,12 @@ export default function ModelsPage() {
                         <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.gram")}</Label>
                         <Input
                           type="number"
-                          step="0.01"
-                          placeholder={t("models.gram_placeholder")}
+                          step="1.00"
+                          min="2.00"
                           value={formData.gram}
                           onChange={(e) => setFormData({ ...formData, gram: e.target.value })}
                           required
-                          className="bg-background/40 border-muted/30 transition-all"
+                          className="bg-background/40 border-muted/30 text-left transition-all"
                         />
                       </div>
 
@@ -626,7 +626,7 @@ export default function ModelsPage() {
               <div className="space-y-1.5">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Tag className="h-4 w-4 text-primary" />
-                  {t("models.categories")}
+                  {t("common.add_category")}
                 </CardTitle>
                 <CardDescription>
                   {t("models.categories_desc")}
@@ -844,13 +844,6 @@ export default function ModelsPage() {
                       <CommandList>
                         <CommandEmpty>{t("common.no_data")}</CommandEmpty>
                         <CommandGroup>
-                          <CommandItem
-                            onSelect={() => setEditFormData({ ...editFormData, categoryId: "" })}
-                            className="text-muted-foreground italic"
-                          >
-                            <Check className={cn("mr-2 h-4 w-4", !editFormData.categoryId ? "opacity-100" : "opacity-0")} />
-                            {t("common.no_category")}
-                          </CommandItem>
                           {categories.map((cat) => (
                             <CommandItem
                               key={cat.ID}
@@ -871,7 +864,8 @@ export default function ModelsPage() {
                   <Label className="text-xs font-semibold">{t("models.gram")}</Label>
                   <Input
                     type="number"
-                    step="0.01"
+                    step="1.00"
+                    min="2.00"
                     value={editFormData.gram}
                     onChange={(e) => setEditFormData({ ...editFormData, gram: e.target.value })}
                     required
@@ -902,8 +896,7 @@ export default function ModelsPage() {
 
               <div className="space-y-2">
                 <Label className="text-xs font-semibold">
-                  {t("models.file_upload")} - Değiştir 
-                  {editingModel?.FilePath && <span className="ml-2 text-primary font-normal">(Mevcut dosya korunacak)</span>}
+                  Model Dosyası (.STL)
                 </Label>
                 <div 
                   className={cn(
@@ -942,7 +935,9 @@ export default function ModelsPage() {
                   ) : (
                     <>
                       <FileUp className={cn("h-6 w-6 transition-colors", isDraggingEdit ? "text-primary" : "text-muted-foreground/50")} />
-                      <p className="text-[10px] text-muted-foreground">{isDraggingEdit ? "Buraya Bırakın" : "Tıkla ve değiştir (.stl)"}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {isDraggingEdit ? "Buraya Bırakın" : (editingModel?.FilePath ? "Değiştir (.stl)" : "Ekle (.stl)")}
+                      </p>
                     </>
                   )}
                 </div>

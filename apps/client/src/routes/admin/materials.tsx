@@ -496,8 +496,8 @@ export default function MaterialsPage() {
             <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
               <div className="space-y-1.5">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Layers className="h-4 w-4 text-primary" />
-                  {t("materials.categories")}
+                  <Tag className="h-4 w-4 text-primary" />
+                  {t("common.add_category")}
                 </CardTitle>
                 <CardDescription>
                   {t("materials.categories_desc")}
