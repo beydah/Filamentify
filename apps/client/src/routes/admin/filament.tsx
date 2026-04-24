@@ -525,7 +525,7 @@ export default function FilamentPage() {
              step="100"
              min="100"
              max="2500"
-             placeholder="0"
+             placeholder={t("filament.price_placeholder")}
              value={formData.price}
              onChange={(e) => {
               const val = parseInt(e.target.value);
@@ -543,7 +543,7 @@ export default function FilamentPage() {
              step="100"
              min="100"
              max="5000"
-             placeholder="1000"
+             placeholder={t("filament.gram_placeholder")}
              value={formData.gram}
              onChange={(e) => setFormData({ ...formData, gram: e.target.value })}
              required
@@ -555,7 +555,7 @@ export default function FilamentPage() {
           <div className="space-y-2">
            <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("materials.link")}</Label>
            <Input
-            placeholder="https://..."
+            placeholder={t("filament.link_placeholder")}
             value={formData.link}
             onChange={(e) => setFormData({ ...formData, link: e.target.value })}
             className="bg-background/40 border-muted/30 transition-all"

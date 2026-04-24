@@ -477,6 +477,7 @@ export default function ModelsPage() {
                           type="number"
                           step="1.00"
                           min="2.00"
+                          placeholder={t("models.gram_placeholder")}
                           value={formData.gram}
                           onChange={(e) => setFormData({ ...formData, gram: e.target.value })}
                           required

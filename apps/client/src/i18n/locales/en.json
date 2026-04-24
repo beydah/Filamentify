@@ -34,7 +34,7 @@
     "is_sub_product": "Is sub-product?",
     "multiplier": "Multiplier",
     "cost": "Cost",
-    "usage_per_unit": "Usage Per Unit (%)",
+    "usage_per_unit": "Unit Usage (%)",
     "registration_date": "Registration Date",
     "no_link": "No link"
   },
@@ -71,7 +71,10 @@
     "name_placeholder": "Filament Name (e.g., Black PLA)",
     "color_selection": "Color Selection",
     "price": "Price",
+    "price_placeholder": "e.g., 500",
     "gram": "Weight (gr)",
+    "gram_placeholder": "e.g., 1000",
+    "link_placeholder": "https://...",
     "purchase_date": "Purchase Date",
     "select_date": "Select date",
     "save": "Save Filament",
@@ -179,6 +182,7 @@
     "select_date": "Select date",
     "table": {
       "unit_price": "Unit Price",
+      "unit_usage": "Unit Usage",
       "current": "Current"
     }
   },
@@ -186,6 +190,7 @@
     "new_record": "Add Product",
     "new_record_desc": "Create a new product record.",
     "name": "Product Name",
+    "name_placeholder": "Enter product name",
     "description": "Description",
     "price": "Price",
     "stock": "Stock",

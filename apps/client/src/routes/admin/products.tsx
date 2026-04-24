@@ -20,7 +20,9 @@ import {
   X,
   Check,
   ChevronsUpDown,
-  Tag
+  Tag,
+  ExternalLink,
+  Info
 } from "lucide-react"
 import { Button } from "@/ui/controls/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/controls/card"
@@ -121,6 +123,7 @@ export default function ProductsPage() {
   const [addingCategory, setAddingCategory] = React.useState(false)
   const [deletingCategoryId, setDeletingCategoryId] = React.useState<number | null>(null)
   const [openParentSelect, setOpenParentSelect] = React.useState(false)
+  const [openCategorySelect, setOpenCategorySelect] = React.useState(false)
   const [isSubProduct, setIsSubProduct] = React.useState(false)
   const [loading, setLoading] = React.useState(true)
   const [submitting, setSubmitting] = React.useState(false)
@@ -143,6 +146,7 @@ export default function ProductsPage() {
 
   // Edit State
   const [isEditOpen, setIsEditOpen] = React.useState(false)
+  const [isDetailOpen, setIsDetailOpen] = React.useState(false)
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null)
   const [originalProduct, setOriginalProduct] = React.useState<Product | null>(null)
   const [editFormData, setEditFormData] = React.useState({
@@ -399,6 +403,20 @@ export default function ProductsPage() {
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[250px] p-0" align="start">
+                              <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
+                                <span className="text-[10px] font-bold tracking-wider text-muted-foreground">{t("products.parent_product")}</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6 p-0 text-primary hover:bg-primary/10"
+                                  onClick={() => {
+                                    setOpenParentSelect(false)
+                                    setIsSubProduct(false)
+                                  }}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
                               <Command>
                                 <CommandInput placeholder={t("common.search")} />
                                 <CommandList>
@@ -418,7 +436,12 @@ export default function ProductsPage() {
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("products.name")}</Label>
-                          <Input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+                          <Input 
+                            placeholder={t("products.name_placeholder") || "Örn: Gümüş"} 
+                            value={formData.name} 
+                            onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                            required 
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("products.image_front")}</Label>
@@ -440,12 +463,23 @@ export default function ProductsPage() {
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[200px] p-0">
+                              <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
+                                <span className="text-[10px] font-bold tracking-wider text-muted-foreground">{t("nav.filament")}</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6 p-0 text-primary hover:bg-primary/10"
+                                  onClick={() => window.location.href = '/admin/filament'}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
                               <Command>
                                 <CommandInput placeholder={t("common.search")} />
                                 <CommandList>
                                   <CommandGroup>
                                     {filaments.map(f => (
-                                      <CommandItem key={f.ID} onSelect={() => setFormData({...formData, selectedFilaments: [...formData.selectedFilaments, {id: f.ID, quantity: 0}]})}>
+                                      <CommandItem key={f.ID} onSelect={() => setFormData({...formData, selectedFilaments: [...formData.selectedFilaments, {id: f.ID, quantity: formData.selectedFilaments.length === 0 ? 100 : 0}]})}>
                                         {f.Name}
                                       </CommandItem>
                                     ))}
@@ -476,19 +510,34 @@ export default function ProductsPage() {
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("products.name")}</Label>
-                          <Input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+                          <Input 
+                            placeholder={t("products.name_placeholder") || "Örn: Minecraft Kılıç"} 
+                            value={formData.name} 
+                            onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                            required 
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("products.description")}</Label>
-                          <Input value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
+                          <Input 
+                            placeholder={t("products.description") || "Ürün açıklaması..."} 
+                            value={formData.description} 
+                            onChange={(e) => setFormData({...formData, description: e.target.value})} 
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("products.profit_multiplier")}</Label>
-                          <Input type="number" step="0.1" value={formData.profitMultiplier} onChange={(e) => setFormData({...formData, profitMultiplier: e.target.value})} />
+                          <Input 
+                            type="number" 
+                            step="0.1" 
+                            placeholder="1.5" 
+                            value={formData.profitMultiplier} 
+                            onChange={(e) => setFormData({...formData, profitMultiplier: e.target.value})} 
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("common.category")}</Label>
-                          <Popover>
+                          <Popover open={openCategorySelect} onOpenChange={setOpenCategorySelect}>
                             <PopoverTrigger asChild>
                               <Button variant="outline" className="w-full justify-between h-10 text-xs">
                                 {categories.find(c => c.ID.toString() === formData.categoryId)?.Name || t("common.select")}
@@ -496,12 +545,26 @@ export default function ProductsPage() {
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[200px] p-0">
+                              <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
+                                <span className="text-[10px] font-bold tracking-wider text-muted-foreground">{t("common.category")}</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6 p-0 text-primary hover:bg-primary/10"
+                                  onClick={() => {
+                                    setOpenCategorySelect(false)
+                                    document.getElementById('category-management')?.scrollIntoView({ behavior: 'smooth' })
+                                  }}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
                               <Command>
                                 <CommandInput placeholder={t("common.search")} />
                                 <CommandList>
                                   <CommandGroup>
                                     {categories.map(c => (
-                                      <CommandItem key={c.ID} onSelect={() => setFormData({...formData, categoryId: c.ID.toString()})}>
+                                      <CommandItem key={c.ID} onSelect={() => { setFormData({...formData, categoryId: c.ID.toString()}); setOpenCategorySelect(false); }}>
                                         <Check className={cn("mr-2 h-4 w-4", formData.categoryId === c.ID.toString() ? "opacity-100" : "opacity-0")} />
                                         {c.Name}
                                       </CommandItem>
@@ -512,14 +575,24 @@ export default function ProductsPage() {
                             </PopoverContent>
                           </Popover>
                         </div>
-                        {/* Models and Materials section omitted for brevity in sub-product logic as per user request */}
-                        {/* Actually user said: "açıklama, kar çarpanı, kategori, model seçimi, malzeme seçimi" gizlenecek if checkbox aktifse. */}
-                        {/* So they are visible if NOT sub-product. */}
                         <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-muted/10">
                           <Label className="text-xs font-bold tracking-widest flex items-center gap-2"><TrendingUp className="h-3 w-3 text-primary" />{t("products.select_models")}</Label>
                           <Popover>
                             <PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-9 text-xs">{t("products.add_model")}<Plus className="h-3 w-3" /></Button></PopoverTrigger>
-                            <PopoverContent className="w-[200px] p-0"><Command><CommandInput placeholder={t("common.search")} /><CommandList><CommandGroup>{models.map(m => (<CommandItem key={m.ID} onSelect={() => setFormData({...formData, selectedModels: [...formData.selectedModels, {id: m.ID, quantity: 1}]})}>{m.Name}</CommandItem>))}</CommandGroup></CommandList></Command></PopoverContent>
+                            <PopoverContent className="w-[200px] p-0">
+                              <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
+                                <span className="text-[10px] font-bold tracking-wider text-muted-foreground">{t("nav.models")}</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6 p-0 text-primary hover:bg-primary/10"
+                                  onClick={() => window.location.href = '/admin/models'}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              <Command><CommandInput placeholder={t("common.search")} /><CommandList><CommandGroup>{models.map(m => (<CommandItem key={m.ID} onSelect={() => setFormData({...formData, selectedModels: [...formData.selectedModels, {id: m.ID, quantity: 1}]})}>{m.Name}</CommandItem>))}</CommandGroup></CommandList></Command>
+                            </PopoverContent>
                           </Popover>
                           <div className="space-y-2">{formData.selectedModels.map((sm, idx) => (<div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10"><span className="text-xs font-medium flex-1 truncate">{models.find(m => m.ID === sm.id)?.Name}</span><Input type="number" className="w-16 h-7 text-xs px-1" value={sm.quantity} onChange={(e) => { const newMods = [...formData.selectedModels]; newMods[idx].quantity = parseInt(e.target.value) || 1; setFormData({...formData, selectedModels: newMods}); }} /><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setFormData({...formData, selectedModels: formData.selectedModels.filter((_, i) => i !== idx)})}><X className="h-3 w-3" /></Button></div>))}</div>
                         </div>
@@ -527,14 +600,27 @@ export default function ProductsPage() {
                           <Label className="text-xs font-bold tracking-widest flex items-center gap-2"><Layers className="h-3 w-3 text-primary" />{t("products.select_materials")}</Label>
                           <Popover>
                             <PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-9 text-xs">{t("products.add_material")}<Plus className="h-3 w-3" /></Button></PopoverTrigger>
-                            <PopoverContent className="w-[200px] p-0"><Command><CommandInput placeholder={t("common.search")} /><CommandList><CommandGroup>{materials.map(m => (<CommandItem key={m.ID} onSelect={() => setFormData({...formData, selectedMaterials: [...formData.selectedMaterials, {id: m.ID, quantity: 1}]})}>{m.Name}</CommandItem>))}</CommandGroup></CommandList></Command></PopoverContent>
+                            <PopoverContent className="w-[200px] p-0">
+                              <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
+                                <span className="text-[10px] font-bold tracking-wider text-muted-foreground">{t("nav.materials")}</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6 p-0 text-primary hover:bg-primary/10"
+                                  onClick={() => window.location.href = '/admin/materials'}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              <Command><CommandInput placeholder={t("common.search")} /><CommandList><CommandGroup>{materials.map(m => (<CommandItem key={m.ID} onSelect={() => setFormData({...formData, selectedMaterials: [...formData.selectedMaterials, {id: m.ID, quantity: 1}]})}>{m.Name}</CommandItem>))}</CommandGroup></CommandList></Command>
+                            </PopoverContent>
                           </Popover>
                           <div className="space-y-2">{formData.selectedMaterials.map((sm, idx) => (<div key={idx} className="flex items-center gap-2 bg-background/60 p-2 rounded-lg border border-muted/10"><span className="text-xs font-medium flex-1 truncate">{materials.find(m => m.ID === sm.id)?.Name}</span><Input type="number" className="w-16 h-7 text-xs px-1" value={sm.quantity} onChange={(e) => { const newMats = [...formData.selectedMaterials]; newMats[idx].quantity = parseInt(e.target.value) || 1; setFormData({...formData, selectedMaterials: newMats}); }} /><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setFormData({...formData, selectedMaterials: formData.selectedMaterials.filter((_, i) => i !== idx)})}><X className="h-3 w-3" /></Button></div>))}</div>
                         </div>
                       </div>
                     )}
 
-                    <Button type="submit" className="w-full h-10 font-bold" disabled={submitting}>
+                    <Button type="submit" className="w-full h-10 font-bold bg-primary hover:bg-primary/90 shadow-lg" disabled={submitting}>
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShoppingBag className="h-4 w-4 mr-2" />}
                       {t("common.save")}
                     </Button>
@@ -575,7 +661,7 @@ export default function ProductsPage() {
                   <CardTitle className="text-xl">{t("products.inventory")}</CardTitle>
                 </div>
                 <div className="bg-muted/30 px-3 py-1 rounded-full text-xs font-semibold text-muted-foreground border border-muted/20">
-                  {t("filament.total")}: {products.length}
+                  {t("filament.total")}: {products.filter(p => p.ParentID).length}
                 </div>
               </div>
             </CardHeader>
@@ -597,10 +683,10 @@ export default function ProductsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {products.map((p) => (
+                    {products.filter(p => p.ParentID).map((p) => (
                       <TableRow key={p.ID} className="hover:bg-muted/5 transition-colors border-muted/10 h-16">
                         <TableCell className="px-6 font-medium">
-                          {p.ParentName ? `${p.Name} ${p.ParentName}` : p.Name}
+                          {p.Name} <span className="text-muted-foreground/60 text-xs font-normal">({p.ParentName})</span>
                         </TableCell>
                         <TableCell className="text-center">
                           <span className="px-2 py-0.5 rounded-full bg-muted/20 text-[11px]">
@@ -608,16 +694,17 @@ export default function ProductsPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-center">{p.ProfitMultiplier}x</TableCell>
-                        <TableCell className="text-center font-bold">0.00₺</TableCell>
-                        <TableCell className="text-center font-bold">{p.Price}₺</TableCell>
+                        <TableCell className="text-center font-bold">0.00</TableCell>
+                        <TableCell className="text-center font-bold">{p.Price}</TableCell>
                         <TableCell className="px-6 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted/20">
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent align="end" className="w-40">
+                              <DropdownMenuItem onClick={() => { setSelectedProduct(p); setIsDetailOpen(true); }}><Eye className="mr-2 h-4 w-4" />{t("common.details")}</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleEditClick(p)}><Edit3 className="mr-2 h-4 w-4" />{t("common.edit")}</DropdownMenuItem>
                               <DropdownMenuItem className="text-red-500" onClick={() => handleDeleteProduct(p.ID)}><Trash2 className="mr-2 h-4 w-4" />{t("common.delete")}</DropdownMenuItem>
                             </DropdownMenuContent>
@@ -632,6 +719,66 @@ export default function ProductsPage() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="max-w-md bg-background/95 backdrop-blur-xl border-muted/30">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+              <ShoppingBag className="h-6 w-6 text-primary" />
+              {selectedProduct?.Name}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedProduct?.ParentName ? `Üst Ürün: ${selectedProduct.ParentName}` : "Ana Ürün"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-6 py-4">
+            <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-muted/30">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">{t("common.category")}</p>
+                <p className="text-sm font-semibold">{selectedProduct?.CategoryName || "-"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">{t("products.profit_multiplier")}</p>
+                <p className="text-sm font-semibold">{selectedProduct?.ProfitMultiplier}x</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">{t("common.cost")}</p>
+                <p className="text-sm font-semibold">0.00</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">{t("products.table.price")}</p>
+                <p className="text-sm font-bold text-primary">{selectedProduct?.Price}</p>
+              </div>
+            </div>
+
+            {selectedProduct?.Description && (
+              <div className="space-y-1 p-4 bg-muted/10 rounded-xl border border-muted/20">
+                <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">{t("products.description")}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{selectedProduct.Description}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="p-3 bg-muted/10 rounded-xl border border-muted/20 text-center">
+                <Layers className="h-4 w-4 mx-auto mb-1 text-primary/60" />
+                <p className="text-[10px] font-bold text-muted-foreground uppercase">{t("nav.materials")}</p>
+                <p className="text-xs font-bold">{selectedProduct?.materials?.length || 0}</p>
+              </div>
+              <div className="p-3 bg-muted/10 rounded-xl border border-muted/20 text-center">
+                <TrendingUp className="h-4 w-4 mx-auto mb-1 text-primary/60" />
+                <p className="text-[10px] font-bold text-muted-foreground uppercase">{t("nav.models")}</p>
+                <p className="text-xs font-bold">{selectedProduct?.models?.length || 0}</p>
+              </div>
+              <div className="p-3 bg-muted/10 rounded-xl border border-muted/20 text-center">
+                <Box className="h-4 w-4 mx-auto mb-1 text-primary/60" />
+                <p className="text-[10px] font-bold text-muted-foreground uppercase">{t("nav.filament")}</p>
+                <p className="text-xs font-bold">{selectedProduct?.filaments?.length || 0}</p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

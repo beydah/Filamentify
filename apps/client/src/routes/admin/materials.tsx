@@ -99,7 +99,7 @@ export default function MaterialsPage() {
     totalPrice: "100",
     link: "",
     purchaseDate: new Date(),
-    usagePerUnit: "50"
+    usagePerUnit: "100"
   })
 
   const [isDetailOpen, setIsDetailOpen] = React.useState(false)
@@ -197,7 +197,7 @@ export default function MaterialsPage() {
           totalPrice: "100",
           link: "",
           purchaseDate: new Date(),
-          usagePerUnit: "50"
+          usagePerUnit: "100"
         })
         fetchData()
       }
@@ -433,7 +433,7 @@ export default function MaterialsPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("common.usage_per_unit")} (%)</Label>
+                      <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("common.usage_per_unit")}</Label>
                       <Input
                         type="number"
                         step="5"
@@ -572,7 +572,7 @@ export default function MaterialsPage() {
                         </div>
                       </TableHead>
                       <TableHead className="text-center w-[15%]">{t("materials.table.unit_price")}</TableHead>
-                      <TableHead className="text-center w-[15%]">{t("common.usage_per_unit")}</TableHead>
+                      <TableHead className="text-center w-[15%]">{t("materials.table.unit_usage")}</TableHead>
                       <TableHead className="text-center w-[25%]">
                         <div className="flex items-center justify-center gap-1">
                           {t("materials.table.current")}
@@ -635,13 +635,13 @@ export default function MaterialsPage() {
                               {m.CategoryName}
                             </span>
                           </TableCell>
-                          <TableCell className="text-center font-bold">{(m.TotalPrice / m.Quantity).toFixed(2)}₺</TableCell>
+                          <TableCell className="text-center font-bold">{(m.TotalPrice / m.Quantity).toFixed(2)}</TableCell>
                           <TableCell className="text-center font-bold">{(m.UsagePerUnit || 50)}%</TableCell>
                           <TableCell className="text-center">
                             <div className="flex flex-col items-center gap-1.5 w-full mx-auto max-w-[120px]">
                               <div className="flex justify-between w-full text-[9px] font-bold tracking-tight text-muted-foreground/80">
                                 <span>{m.Quantity} Adet</span>
-                                <span>{m.UsagePerUnit || 50}% Birim</span>
+                                <span>Adet</span>
                               </div>
                               <div className="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden">
                                 <div 
