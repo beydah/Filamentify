@@ -53,7 +53,6 @@ Thumbs.db
 *.swo
 *.sublime-project
 *.sublime-workspace
-.agent/
 
 # Database
 *.sqlite
