@@ -1,68 +1,55 @@
 # Dependencies
 node_modules/
-.pnp
-.pnp.js
-jspm_packages/
+apps/**/node_modules/
 
-# Testing
-coverage/
-.nyc_output
-
-# Production
+# Build output
 dist/
 build/
 out/
 .next/
-.serverless/
+coverage/
+.nyc_output/
 
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# Misc / OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-*.bak
-*.tmp
-*.temp
-*.log
-
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-*.env*
-
-# IDEs
-.vscode/
-!.vscode/extensions.json
-!.vscode/launch.json
-!.vscode/settings.json
-.idea/
-*.swp
-*.swo
-*.sublime-project
-*.sublime-workspace
-
-# Database
+# Runtime data
+data/*
+!data/.gitkeep
+apps/server/uploads/
+apps/server/Filamentify_DB.sqlite
 *.sqlite
 *.sqlite-journal
 *.sqlite3
 *.db
 *.db-journal
 
-# App Specific
-apps/client/dist/
-apps/server/dist/
-apps/server/uploads/*
-!apps/server/uploads/.gitkeep
+# Logs and temp
+*.log
+*.tmp
+*.temp
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Editors and OS
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+ehthumbs.db
+*.swp
+*.swo
+
+# Generated reports
+apps/client/lint_all_errors.txt
+apps/client/lint_errors.txt

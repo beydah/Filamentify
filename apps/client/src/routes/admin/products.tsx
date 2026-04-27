@@ -1,11 +1,8 @@
+/* eslint-disable react-hooks/static-components */
 import * as React from "react"
 import { useTranslation } from "react-i18next"
-import { Canvas, useLoader } from "@react-three/fiber"
-import { OrbitControls, Stage, Center } from "@react-three/drei"
-import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js"
 import { 
   Plus, 
-  Search, 
   ChevronDown, 
   ChevronUp,
   Loader2,
@@ -14,8 +11,6 @@ import {
   ShoppingBag,
   Eye,
   Edit3,
-  Image as ImageIcon,
-  DollarSign,
   Package,
   Layers,
   Box,
@@ -23,14 +18,15 @@ import {
   X,
   Check,
   ChevronsUpDown,
-  Tag,
-  ExternalLink,
-  Info,
   Upload,
-  FileImage
+  FileImage,
 } from "lucide-react"
 
+import type { Filament, Material, Model, Product, ProductCategory } from "@/lib/admin-types"
+import { buildProtectedFileUrl } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { CategoryCard } from "@/ui/admin/CategoryCard"
+import { ModelViewer } from "@/ui/admin/model-viewer"
 import { Button } from "@/ui/controls/button"
 import { Card as CardComp, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/controls/card"
 import { Input } from "@/ui/controls/input"
@@ -72,93 +68,6 @@ import {
   PopoverTrigger,
 } from "@/ui/controls/popover"
 import { toast } from "sonner"
-import { CategoryCard } from "@/ui/admin/CategoryCard"
-
-interface Material {
-  ID: number
-  Name: string
-}
-
-interface Model {
-  ID: number
-  Name: string
-  FilePath?: string
-}
-
-interface ProductDetail {
-  ID: number
-  Name: string
-  Quantity: number
-  ModelID?: number
-  MaterialID?: number
-  FilamentID?: number
-}
-
-interface Filament {
-  ID: number
-  Name: string
-}
-
-interface ProductCategory {
-  ID: number
-  Name: string
-}
-
-interface Product {
-  ID: number
-  Name: string
-  Description: string
-  Price: number
-  Stock: number
-  ImageFront: string
-  ImageBack: string
-  ProfitMultiplier: number
-  ParentID?: number
-  ParentName?: string
-  CategoryID?: number
-  CategoryName?: string
-  materials: ProductDetail[]
-  models: ProductDetail[]
-  filaments: ProductDetail[]
-}
-
-function STLModel({ url }: { url: string }) {
-  const geom = useLoader(STLLoader, url)
-  return (
-    <mesh geometry={geom}>
-      <meshStandardMaterial color="#888888" />
-    </mesh>
-  )
-}
-
-function ModelViewer({ filePath }: { filePath?: string }) {
-  const { t } = useTranslation()
-  if (!filePath) return <div className="flex h-48 items-center justify-center text-muted-foreground bg-muted/5 rounded-lg border border-dashed text-xs italic">{t("models.details.no_file")}</div>
-  
-  const url = `http://localhost:3001/${filePath}`
-  const isSTL = filePath.toLowerCase().endsWith('.stl')
-
-  if (!isSTL) {
-    return <div className="flex h-48 items-center justify-center text-muted-foreground font-medium italic bg-muted/5 rounded-lg border border-dashed text-xs">
-      {t("models.details.format_error", { format: filePath.split('.').pop() })}
-    </div>
-  }
-
-  return (
-    <div className="h-[200px] w-full rounded-xl border bg-muted/20 relative group overflow-hidden shadow-inner">
-      <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
-        <Stage intensity={0.5} environment="city" adjustCamera={1.5}>
-          <React.Suspense fallback={null}>
-            <Center>
-              <STLModel url={url} />
-            </Center>
-          </React.Suspense>
-        </Stage>
-        <OrbitControls makeDefault />
-      </Canvas>
-    </div>
-  )
-}
 
 export default function ProductsPage() {
   const { t } = useTranslation()
@@ -229,20 +138,41 @@ export default function ProductsPage() {
         filRes.json(),
         catRes.json()
       ])
+      return { prodData, matData, modData, filData, catData }
+    } catch (error) {
+      console.error("Failed to fetch data:", error)
+      return {
+        prodData: [] as Product[],
+        matData: [] as Material[],
+        modData: [] as Model[],
+        filData: [] as Filament[],
+        catData: [] as ProductCategory[],
+      }
+    }
+  }, [])
+
+  React.useEffect(() => {
+    let active = true
+
+    const load = async () => {
+      const { prodData, matData, modData, filData, catData } = await fetchData()
+      if (!active) {
+        return
+      }
+
       setProducts(prodData)
       setMaterials(matData)
       setModels(modData)
       setFilaments(filData)
       setCategories(catData)
-    } catch (error) {
-      console.error("Failed to fetch data:", error)
-    } finally {
       setLoading(false)
     }
-  }, [])
 
-  React.useEffect(() => {
-    fetchData()
+    void load()
+
+    return () => {
+      active = false
+    }
   }, [fetchData])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -447,7 +377,7 @@ export default function ProductsPage() {
 
     return (
       <div className="space-y-2">
-        <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{label}</Label>
+        <Label htmlFor={id} className="text-xs font-semibold tracking-wider text-muted-foreground">{label}</Label>
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -460,6 +390,7 @@ export default function ProductsPage() {
           )}
         >
           <Input 
+            id={id}
             type="file" 
             ref={fileInputRef}
             className="hidden" 
@@ -915,7 +846,7 @@ export default function ProductsPage() {
                 <div className="aspect-square rounded-xl border border-muted/30 overflow-hidden bg-muted/10 group relative">
                   {selectedProduct?.ImageFront ? (
                     <img 
-                      src={`http://localhost:3001/${selectedProduct.ImageFront}`} 
+                      src={buildProtectedFileUrl(selectedProduct.ImageFront) || undefined} 
                       alt="Front" 
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
@@ -929,7 +860,7 @@ export default function ProductsPage() {
                 <div className="aspect-square rounded-xl border border-muted/30 overflow-hidden bg-muted/10 group relative">
                   {selectedProduct?.ImageBack ? (
                     <img 
-                      src={`http://localhost:3001/${selectedProduct.ImageBack}`} 
+                      src={buildProtectedFileUrl(selectedProduct.ImageBack) || undefined} 
                       alt="Back" 
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />

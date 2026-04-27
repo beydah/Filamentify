@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next"
 import { 
   Plus, 
   Loader2, 
-  Tag, 
   ExternalLink,
   Search,
   MoreVertical,
@@ -19,15 +18,8 @@ import {
   FilterX,
   Box,
   FileText,
-  Eye,
-  Minus
+  Eye
 } from "lucide-react"
-import { Canvas } from "@react-three/fiber"
-import { OrbitControls, Stage, Center } from "@react-three/drei"
-import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js"
-import { Calendar } from "@/ui/controls/calendar"
-import { subMonths } from "date-fns"
-import { useLoader } from "@react-three/fiber"
 import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
@@ -71,12 +63,12 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/ui/controls/dialog"
 import { CategoryCard } from "@/ui/admin/CategoryCard"
+import { ModelViewer } from "@/ui/admin/model-viewer"
 
 interface ModelCategory {
   ID: number
@@ -94,47 +86,6 @@ interface Model {
   FilePath?: string
 }
 
-function STLModel({ url }: { url: string }) {
-  const geom = useLoader(STLLoader, url)
-  return (
-    <mesh geometry={geom}>
-      <meshStandardMaterial color="#888888" />
-    </mesh>
-  )
-}
-
-function ModelViewer({ filePath }: { filePath?: string }) {
-  const { t } = useTranslation()
-  if (!filePath) return <div className="flex h-full items-center justify-center text-muted-foreground">{t("models.details.no_file")}</div>
-  
-  const url = `http://localhost:3001/${filePath}`
-  const isSTL = filePath.toLowerCase().endsWith('.stl')
-
-  if (!isSTL) {
-    return <div className="flex h-full items-center justify-center text-muted-foreground font-medium italic">
-      {t("models.details.format_error", { format: filePath.split('.').pop() })}
-    </div>
-  }
-
-  return (
-    <div className="h-[300px] w-full rounded-lg border bg-muted/20 relative group overflow-hidden">
-      <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
-        <Stage intensity={0.5} environment="city" adjustCamera={1.5}>
-          <React.Suspense fallback={null}>
-            <Center>
-              <STLModel url={url} />
-            </Center>
-          </React.Suspense>
-        </Stage>
-        <OrbitControls makeDefault />
-      </Canvas>
-      <div className="absolute bottom-2 right-2 px-2 py-1 bg-background/80 backdrop-blur-sm rounded text-[10px] font-mono opacity-0 group-hover:opacity-100 transition-opacity">
-        {t("models.details.preview")}
-      </div>
-    </div>
-  )
-}
-
 export default function ModelsPage() {
   const { t } = useTranslation()
   
@@ -148,9 +99,7 @@ export default function ModelsPage() {
   const [isFormOpen, setIsFormOpen] = React.useState(true)
 
   const [editingModel, setEditingModel] = React.useState<Model | null>(null)
-  const [originalModel, setOriginalModel] = React.useState<Model | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false)
-  const [updateSuccess, setUpdateSuccess] = React.useState(false)
   const [editFormData, setEditFormData] = React.useState({
     name: "",
     categoryId: "",
@@ -193,17 +142,32 @@ export default function ModelsPage() {
       ])
       const modData = await modRes.json()
       const catData = await catRes.json()
-      setModels(modData)
-      setCategories(catData)
+      return { modData, catData }
     } catch (error) {
       console.error("Failed to fetch data:", error)
-    } finally {
-      setLoading(false)
+      return { modData: [] as Model[], catData: [] as ModelCategory[] }
     }
   }, [])
 
   React.useEffect(() => {
-    fetchData()
+    let active = true
+
+    const load = async () => {
+      const { modData, catData } = await fetchData()
+      if (!active) {
+        return
+      }
+
+      setModels(modData)
+      setCategories(catData)
+      setLoading(false)
+    }
+
+    void load()
+
+    return () => {
+      active = false
+    }
   }, [fetchData])
 
   const handleDeleteCategory = async (id: number) => {
@@ -289,7 +253,6 @@ export default function ModelsPage() {
 
   const handleEditClick = (model: Model) => {
     setEditingModel(model)
-    setOriginalModel(model)
     setEditFormData({
       name: model.Name,
       categoryId: model.CategoryID.toString(),
@@ -299,19 +262,6 @@ export default function ModelsPage() {
       file: null
     })
     setIsEditDialogOpen(true)
-  }
-
-  const isFieldChanged = (field: string, value: any) => {
-    if (!originalModel) return false
-    switch (field) {
-      case "name": return value !== originalModel.Name
-      case "categoryId": return value !== originalModel.CategoryID.toString()
-      case "link": return value !== (originalModel.Link || "")
-      case "gram": return value !== originalModel.Gram.toString()
-      case "pieceCount": return value !== (originalModel.PieceCount || 1).toString()
-      case "file": return value !== null
-      default: return false
-    }
   }
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -334,12 +284,8 @@ export default function ModelsPage() {
         body: data,
       })
       if (response.ok) {
-        setUpdateSuccess(true)
-        setTimeout(() => {
-          setIsEditDialogOpen(false)
-          setUpdateSuccess(false)
-          fetchData()
-        }, 1000)
+        setIsEditDialogOpen(false)
+        fetchData()
       }
     } catch (error) {
       console.error("Failed to update model:", error)

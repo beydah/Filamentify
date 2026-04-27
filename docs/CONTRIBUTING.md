@@ -1,57 +1,40 @@
-# Contributing to Filamentify
+# Contributing To Filamentify
 
-First off, thank you for considering contributing to Filamentify! It's community members like you that make 3D printing management easier for everyone.
+## Local setup
 
-## 🛠️ Development Environment
+1. Copy `.env.example` to `.env`.
+2. Install `apps/client` dependencies.
+3. Install `apps/server` dependencies.
+4. Run the client and server in separate terminals.
 
-### Prerequisites
-- **Node.js**: v18.0.0 or higher
-- **npm**: v9.0.0 or higher
-- **Git**: For version control
+## Expectations
 
-### Setup
-1. **Fork the repository** on GitHub.
-2. **Clone your fork** locally:
-   ```bash
-   git clone https://github.com/beydah/Filamentify.git
-   ```
-3. **Install dependencies** in both apps:
-   ```bash
-   cd apps/server && npm install
-   cd ../client && npm install
-   ```
+- Keep runtime data out of Git. Do not commit `data/`, uploads, or local SQLite files.
+- Add UI strings for both `en` and `tr`.
+- Prefer small, typed utilities over page-local duplication.
+- Keep API responses consistent: validation errors, missing resources, and conflicts should be distinguishable.
+- When schema changes are made, update `apps/server/src/db.ts` and `docs/DATABASE_SCHEMA.md` together.
 
-## 🏗️ Technical Stack & Standards
+## Before opening a PR
 
-We use a modern stack. Please ensure your contributions align with these technologies:
+Client:
 
-- **Frontend**: React 19, Vite, Tailwind CSS 4.0, Shadcn/UI.
-- **Backend**: Node.js, Express, better-sqlite3.
-- **Languages**: TypeScript (Strict mode enabled).
-- **Icons**: Lucide React.
-- **State Management**: React Hooks (Zustand for global state if applicable).
+```bash
+cd apps/client
+npm run lint
+npm run test
+npm run build
+```
 
-### Coding Standards
-- **Component Pattern**: Use functional components with hooks.
-- **Styling**: Use Tailwind 4.0 utility classes. Avoid inline styles or custom CSS unless necessary.
-- **Localization**: All UI strings must be added to `apps/client/src/i18n/locales/` for both `en` and `tr`.
-- **Database**: Schema changes must be reflected in `apps/server/src/db.ts` and `docs/DATABASE_SCHEMA.md`.
+Server:
 
-## 🔄 Contribution Workflow
+```bash
+cd apps/server
+npm run test
+npm run build
+```
 
-1. **Create a branch**: `git checkout -b feat/your-feature-name` or `fix/bug-description`.
-2. **Implement changes**: Follow the style guide and ensure code is clean.
-3. **Local Testing**: Verify that both client and server run without errors.
-4. **Commit**: Use descriptive commit messages (e.g., `feat: add product management module`).
-5. **Push & PR**: Push to your fork and open a Pull Request to the `main` branch.
+## Branching and commits
 
-## 🐞 Reporting Issues
-
-- Use the [Issue Template](./ISSUE_TEMPLATE.md) for bug reports.
-- Be specific about the OS and browser if the issue is UI-related.
-- Include logs from the server console if applicable.
-
-## 💬 Community
-
-Questions? Feel free to open a **GitHub Discussion** or reach out to the maintainers. We're happy to help!
-
+- Use focused commits with descriptive messages.
+- If you rewrite history to remove sensitive or generated artifacts, document it clearly in the PR body and coordinate any force-push.

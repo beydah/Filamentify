@@ -1,24 +1,34 @@
 # Security Policy
 
-## Supported Versions
+## Supported versions
 
-Currently, only the latest version of Filamentify is supported for security updates.
+Only the latest revision on `main` is supported for security fixes.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| v1.0.x  | :white_check_mark: |
-| < v1.0  | :x:                |
+## Reporting a vulnerability
 
-## Reporting a Vulnerability
+Open a private security advisory or contact the maintainer through a private GitHub channel. Do not open public issues for unpatched vulnerabilities.
 
-If you discover a security vulnerability within Filamentify, please send an e-mail to security@filamentify.com (placeholder). All security vulnerabilities will be promptly addressed.
+Include:
 
-### What to include
-- A description of the vulnerability.
-- Steps to reproduce.
-- Potential impact.
+- A short summary
+- Exact reproduction steps
+- Affected routes or files
+- Expected impact
 
-### Our Promise
-- We will acknowledge receipt of your report within 48 hours.
-- We will keep you updated on the progress of the fix.
-- We will provide a credit in the release notes for your responsible disclosure.
+## Current hardening baseline
+
+- Admin token required for protected API routes, and production startup rejects the default fallback token
+- Origin allowlist via `CLIENT_ORIGIN`
+- Controlled file serving through `/api/files/:fileName`
+- Size-limited uploads with extension, MIME, and signature checks
+- SQLite foreign keys enabled
+- Product writes wrapped in transactions
+
+## Maintainer guidance
+
+If secrets or runtime artifacts are committed by mistake:
+
+1. Rotate or revoke the secret first.
+2. Remove the file from the working tree and ignore it.
+3. Rewrite git history to purge the sensitive artifact.
+4. Force-push the cleaned branch and notify consumers to resync.

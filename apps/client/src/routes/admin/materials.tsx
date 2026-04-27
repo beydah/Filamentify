@@ -10,14 +10,11 @@ import {
   Trash2,
   Check,
   ChevronsUpDown,
-  ExternalLink,
   MoreVertical,
   Box,
   Eye,
   Edit3,
   AlertCircle,
-  Layers,
-  Minus,
   Filter,
   FilterX
 } from "lucide-react"
@@ -127,12 +124,10 @@ export default function MaterialsPage() {
       ])
       const matData = await matRes.json()
       const catData = await catRes.json()
-      setMaterials(matData)
-      setCategories(catData)
+      return { matData, catData }
     } catch (error) {
       console.error("Failed to fetch data:", error)
-    } finally {
-      setLoading(false)
+      return { matData: [] as Material[], catData: [] as MaterialCategory[] }
     }
   }, [])
 
@@ -140,7 +135,24 @@ export default function MaterialsPage() {
   const [filterStatus, setFilterStatus] = React.useState("all")
 
   React.useEffect(() => {
-    fetchData()
+    let active = true
+
+    const load = async () => {
+      const { matData, catData } = await fetchData()
+      if (!active) {
+        return
+      }
+
+      setMaterials(matData)
+      setCategories(catData)
+      setLoading(false)
+    }
+
+    void load()
+
+    return () => {
+      active = false
+    }
   }, [fetchData])
 
   const filteredMaterials = materials.filter(m => {
@@ -239,7 +251,7 @@ export default function MaterialsPage() {
     setIsEditOpen(true)
   }
 
-  const isFieldChanged = (field: string, value: any) => {
+  const isFieldChanged = (field: string, value: string | Date) => {
     if (!originalMaterial) return false
     switch (field) {
       case "name": return value !== originalMaterial.Name
@@ -247,7 +259,7 @@ export default function MaterialsPage() {
       case "quantity": return value !== originalMaterial.Quantity.toString()
       case "totalPrice": return value !== originalMaterial.TotalPrice.toString()
       case "link": return value !== (originalMaterial.Link || "")
-      case "purchaseDate": return value.toDateString() !== new Date(originalMaterial.PurchaseDate).toDateString()
+      case "purchaseDate": return value instanceof Date && value.toDateString() !== new Date(originalMaterial.PurchaseDate).toDateString()
       case "usagePerUnit": return value !== (originalMaterial.UsagePerUnit || 50).toString()
       default: return false
     }
@@ -282,6 +294,17 @@ export default function MaterialsPage() {
   }
 
   const isFormValid = formData.name && formData.categoryId
+  const hasMaterialChanges =
+    !!originalMaterial &&
+    (
+      isFieldChanged("name", editFormData.name) ||
+      isFieldChanged("categoryId", editFormData.categoryId) ||
+      isFieldChanged("quantity", editFormData.quantity) ||
+      isFieldChanged("totalPrice", editFormData.totalPrice) ||
+      isFieldChanged("link", editFormData.link) ||
+      isFieldChanged("purchaseDate", editFormData.purchaseDate) ||
+      isFieldChanged("usagePerUnit", editFormData.usagePerUnit)
+    )
 
   return (
     <div className="flex flex-1 flex-col gap-8 p-6 pt-2">
@@ -822,7 +845,7 @@ export default function MaterialsPage() {
             </div>
 
             <DialogFooter>
-              <Button type="submit" disabled={updating || !isFieldChanged} className="w-full">
+              <Button type="submit" disabled={updating || !hasMaterialChanges} className="w-full">
                 {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : t("common.update")}
               </Button>
             </DialogFooter>

@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next"
 import { 
  Plus, 
  Loader2, 
- Tag, 
  Calendar as CalendarIcon, 
  Palette, 
  Info, 
@@ -20,11 +19,10 @@ import {
  FilterX,
  Eye,
  Database,
- Minus,
  ExternalLink
 } from "lucide-react"
 import { CategoryCard } from "@/ui/admin/CategoryCard"
-import { format, parseISO } from "date-fns"
+import { format } from "date-fns"
 import { tr, enUS } from "date-fns/locale"
 import { toast } from "sonner"
 
@@ -65,8 +63,6 @@ import {
  DropdownMenu,
  DropdownMenuContent,
  DropdownMenuItem,
- DropdownMenuLabel,
- DropdownMenuSeparator,
  DropdownMenuTrigger,
 } from "@/ui/controls/dropdown-menu"
 import {
@@ -130,7 +126,6 @@ export default function FilamentPage() {
  
  // Section Toggle State
  const [isFormOpen, setIsFormOpen] = React.useState(true)
- const [isCategoriesOpen, setIsCategoriesOpen] = React.useState(false)
 
  // Filter State
  const [filterCategory, setFilterCategory] = React.useState<string>("all")
@@ -298,7 +293,7 @@ export default function FilamentPage() {
   setIsEditDialogOpen(true)
  }
 
- const isFieldChanged = (field: string, value: any) => {
+ const isFieldChanged = (field: string, value: string | Date) => {
   if (!originalFilament) return false
   switch (field) {
    case "name": return value !== originalFilament.Name
@@ -306,7 +301,7 @@ export default function FilamentPage() {
    case "color": return value !== originalFilament.Color
    case "price": return value !== originalFilament.Price.toString()
    case "gram": return value !== originalFilament.Gram.toString()
-   case "purchaseDate": return value.getTime() !== new Date(originalFilament.PurchaseDate).getTime()
+   case "purchaseDate": return value instanceof Date && value.getTime() !== new Date(originalFilament.PurchaseDate).getTime()
    case "link": return value !== (originalFilament.Link || "")
    default: return false
   }
@@ -322,6 +317,8 @@ export default function FilamentPage() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
      categoryId: editFormData.categoryId ? parseInt(editFormData.categoryId) : null,
+     name: editFormData.name,
+     color: editFormData.color,
      price: parseInt(editFormData.price),
      gram: parseInt(editFormData.gram),
      purchaseDate: editFormData.purchaseDate.toISOString(),
