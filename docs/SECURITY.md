@@ -1,34 +1,56 @@
-# Security Policy
+# 🛡️ Security Policy
 
-## Supported versions
+We take the security of Filamentify seriously. This document outlines our supported versions, reporting processes, and current security baseline.
 
-Only the latest revision on `main` is supported for security fixes.
+---
 
-## Reporting a vulnerability
+## ✅ Supported Versions
 
-Open a private security advisory or contact the maintainer through a private GitHub channel. Do not open public issues for unpatched vulnerabilities.
+We currently only support security fixes for the latest version on the `main` branch.
 
-Include:
+| Version | Supported |
+| :--- | :--- |
+| Latest | ✅ |
+| < Latest | ❌ |
 
-- A short summary
-- Exact reproduction steps
-- Affected routes or files
-- Expected impact
+---
 
-## Current hardening baseline
+## 🚩 Reporting a Vulnerability
 
-- Admin token required for protected API routes, and production startup rejects the default fallback token
-- Origin allowlist via `CLIENT_ORIGIN`
-- Controlled file serving through `/api/files/:fileName`
-- Size-limited uploads with extension, MIME, and signature checks
-- SQLite foreign keys enabled
-- Product writes wrapped in transactions
+> [!CAUTION]
+> Please do not open public issues for unpatched vulnerabilities.
 
-## Maintainer guidance
+If you discover a security risk, please follow these steps:
+1. Open a **private security advisory** on GitHub or contact the maintainer directly.
+2. Provide a detailed report including:
+   - **Summary**: A brief description of the vulnerability.
+   - **Reproduction**: Exact steps to trigger the issue.
+   - **Scope**: Affected routes, files, or components.
+   - **Impact**: The potential risk (e.g., data leak, unauthorized access).
 
-If secrets or runtime artifacts are committed by mistake:
+---
 
-1. Rotate or revoke the secret first.
-2. Remove the file from the working tree and ignore it.
-3. Rewrite git history to purge the sensitive artifact.
-4. Force-push the cleaned branch and notify consumers to resync.
+## 🔒 Hardening Baseline
+
+Filamentify implements several layers of security by default:
+
+- **🔐 Token Protection**: All protected API routes require an `ADMIN_TOKEN`. Production environments reject the default fallback token.
+- **🌐 Origin Allowlist**: Requests are restricted to the domain specified in `CLIENT_ORIGIN`.
+- **📂 Secure File Handling**: Uploads are served via controlled routes (`/api/files/:fileName`) rather than public static directories.
+- **🛡️ Upload Validation**: Files are checked for size limits, valid extensions, MIME types, and file signatures.
+- **🗄️ Database Integrity**: Foreign keys are strictly enforced, and critical writes are wrapped in atomic transactions.
+
+---
+
+## 🧹 Secret Recovery
+
+If sensitive data (tokens, keys, runtime artifacts) is accidentally committed:
+
+1. **Rotate**: Immediately revoke or change the compromised secret.
+2. **Exclude**: Remove the file from the working directory and ensure it is listed in `.gitignore`.
+3. **Purge**: Rewrite Git history to completely remove the artifact.
+4. **Resync**: Force-push the cleaned branch and notify all contributors to resync their local clones.
+
+---
+
+[⬅️ Back to README](../README.md)

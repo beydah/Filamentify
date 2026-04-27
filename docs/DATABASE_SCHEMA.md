@@ -1,108 +1,128 @@
-# Database Schema
+# 🗄️ Database Schema
 
-Filamentify uses SQLite through `better-sqlite3`. The live database file is created under `data/filamentify.sqlite` at runtime and is intentionally ignored by Git.
+Filamentify uses **SQLite** through the `better-sqlite3` library. This document outlines the data structures and relationships within the system.
 
-The source of truth for schema creation and migrations is [`apps/server/src/db.ts`](../apps/server/src/db.ts).
+> [!NOTE]
+> The live database file is located at `data/filamentify.sqlite` and is ignored by Git. 
+> The schema source of truth is [`apps/server/src/db.ts`](../apps/server/src/db.ts).
 
-## Core tables
+---
 
-### `Category_TB`
+## 🗺️ Entity Relationship Diagram
 
-Filament categories.
+```mermaid
+erDiagram
+    Category_TB ||--o{ Filament_TB : contains
+    ModelCategory_TB ||--o{ Model_TB : contains
+    MaterialCategory_TB ||--o{ Material_TB : contains
+    ProductCategory_TB ||--o{ Product_TB : contains
+    Product_TB ||--o{ ProductMaterials_TB : uses
+    Product_TB ||--o{ ProductModels_TB : uses
+    Product_TB ||--o{ ProductFilaments_TB : uses
+    Material_TB ||--o{ ProductMaterials_TB : includes
+    Model_TB ||--o{ ProductModels_TB : includes
+    Filament_TB ||--o{ ProductFilaments_TB : includes
+    Product_TB ||--o{ Product_TB : variants
+```
 
-- `ID`
-- `Name`
+---
 
-### `Filament_TB`
+## 📋 Core Tables
 
-Filament inventory with stock tracking.
+### 🏷️ Categories
+Standardized category tables for various inventory types.
 
-- `ID`
-- `CategoryID`
-- `Name`
-- `Color`
-- `Price`
-- `Gram`
-- `Available_Gram`
-- `PurchaseDate`
-- `Status`
-- `Refresh_Day`
-- `Score`
-- `Link`
+| Table Name | Fields | Description |
+| :--- | :--- | :--- |
+| `Category_TB` | `ID`, `Name` | Filament categories |
+| `ModelCategory_TB` | `ID`, `Name` | 3D model categories |
+| `MaterialCategory_TB` | `ID`, `Name` | Non-filament material categories |
+| `ProductCategory_TB` | `ID`, `Name` | Sellable product categories |
 
-### `ModelCategory_TB`
+---
 
-3D model categories.
+### 🧶 `Filament_TB`
+Tracks filament inventory and stock levels.
 
-- `ID`
-- `Name`
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `ID` | INTEGER | Primary Key |
+| `CategoryID` | INTEGER | Foreign Key to `Category_TB` |
+| `Name` | TEXT | Display name |
+| `Color` | TEXT | Hex code or name |
+| `Price` | REAL | Purchase price |
+| `Gram` | INTEGER | Total weight |
+| `Available_Gram` | INTEGER | Remaining weight |
+| `Status` | TEXT | Current state |
+| `Score` | INTEGER | Quality rating |
+| `Link` | TEXT | Purchase URL |
 
-### `Model_TB`
+---
 
-Stored print model definitions.
+### 🧊 `Model_TB`
+Definitions for 3D printed models.
 
-- `ID`
-- `CategoryID`
-- `Name`
-- `Link`
-- `Gram`
-- `FilePath`
-- `PieceCount`
-- `PurchaseDate`
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `ID` | INTEGER | Primary Key |
+| `CategoryID` | INTEGER | Foreign Key to `ModelCategory_TB` |
+| `Name` | TEXT | Model name |
+| `Link` | TEXT | Source URL (Printables, Thingiverse, etc.) |
+| `Gram` | INTEGER | Estimated weight per print |
+| `FilePath` | TEXT | Path to local STL/3MF file |
+| `PieceCount` | INTEGER | Number of parts |
 
-### `MaterialCategory_TB`
+---
 
-Non-filament material categories.
+### 🛠️ `Material_TB`
+Supplementary inventory (bearings, screws, packaging).
 
-- `ID`
-- `Name`
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `ID` | INTEGER | Primary Key |
+| `CategoryID` | INTEGER | Foreign Key to `MaterialCategory_TB` |
+| `Name` | TEXT | Material name |
+| `Quantity` | INTEGER | Stock count |
+| `TotalPrice` | REAL | Total cost for the quantity |
+| `UsagePerUnit` | INTEGER | How much is used per product |
 
-### `Material_TB`
+---
 
-Supplementary inventory such as bearings, screws, or packaging.
+### 🛒 `Product_TB`
+Final sellable product records.
 
-- `ID`
-- `CategoryID`
-- `Name`
-- `Quantity`
-- `TotalPrice`
-- `Link`
-- `PurchaseDate`
-- `UsagePerUnit`
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `ID` | INTEGER | Primary Key |
+| `Name` | TEXT | Product title |
+| `Description` | TEXT | Detailed info |
+| `Price` | REAL | Selling price |
+| `Stock` | INTEGER | Inventory count |
+| `ImageFront` | TEXT | Filename in `data/uploads/` |
+| `ImageBack` | TEXT | Filename in `data/uploads/` |
+| `ProfitMultiplier` | REAL | Calculation helper |
+| `ParentID` | INTEGER | Self-referencing FK for variants |
 
-### `ProductCategory_TB`
+---
 
-Product categories for sellable items.
+## 🔗 Relationship Tables
 
-- `ID`
-- `Name`
+These tables handle the Many-to-Many relationships between Products and their components.
 
-### `Product_TB`
+| Table Name | Primary Fields | Extra Fields |
+| :--- | :--- | :--- |
+| `ProductMaterials_TB` | `ProductID`, `MaterialID` | `Quantity` |
+| `ProductModels_TB` | `ProductID`, `ModelID` | `Quantity` |
+| `ProductFilaments_TB` | `ProductID`, `FilamentID` | `Quantity` |
 
-Sellable product records and optional parent-child grouping.
+---
 
-- `ID`
-- `Name`
-- `Description`
-- `Price`
-- `Stock`
-- `ImageFront`
-- `ImageBack`
-- `ProfitMultiplier`
-- `PurchaseDate`
-- `ParentID`
-- `CategoryID`
+## 💡 Implementation Notes
 
-### Relationship tables
+- **Foreign Keys**: Enabled at runtime via `PRAGMA foreign_keys = ON`.
+- **Transactions**: Complex operations (like Product updates) are wrapped in atomic transactions.
+- **File Storage**: Only file names are stored in the DB; actual binaries reside in `data/uploads/`.
 
-- `ProductMaterials_TB`
-- `ProductModels_TB`
-- `ProductFilaments_TB`
+---
 
-Each stores `ProductID`, the related entity ID, and a `Quantity` value.
-
-## Notes
-
-- Foreign keys are enabled with `PRAGMA foreign_keys = ON`.
-- Product create and update operations run inside transactions.
-- Uploaded files are stored outside the schema in `data/uploads/`; only the generated file name is kept in the database.
+[⬅️ Back to README](../README.md)
