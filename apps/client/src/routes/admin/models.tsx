@@ -1,532 +1,259 @@
 import * as React from "react"
 import { useTranslation } from "react-i18next"
-import { 
-  Plus, 
-  Loader2, 
-  ExternalLink,
-  Search,
-  MoreVertical,
-  Edit3,
-  Trash2,
-  ChevronUp,
-  ChevronDown,
-  X,
-  Check,
-  ChevronsUpDown,
-  FileUp,
-  Filter,
-  FilterX,
-  Box,
-  FileText,
-  Eye
-} from "lucide-react"
-import { toast } from "sonner"
+import { Box, Check, Edit3, ExternalLink, Eye, Loader2, MoreVertical, Plus, Trash2 } from "lucide-react"
 
-import { cn } from "@/lib/utils"
+import type { Category, Model, ModelFilters, ModelFormState } from "@/lib/admin-types"
+import { apiFetch } from "@/lib/api"
+import { createModelFormState, filterModels } from "@/lib/admin-logic.mjs"
+import { useAdminCollection } from "@/hooks/use-admin-collection"
+import { AdminDialogShell } from "@/ui/admin/admin-dialog-shell"
+import { AdminPageShell } from "@/ui/admin/admin-page-shell"
+import { AdminSectionCard } from "@/ui/admin/admin-section-card"
+import { AdminTableCard } from "@/ui/admin/admin-table-card"
+import { CategoryCard } from "@/ui/admin/CategoryCard"
+import { EntitySelect } from "@/ui/admin/entity-select"
+import { FileDropzone } from "@/ui/admin/file-dropzone"
+import { ModelViewer } from "@/ui/admin/model-viewer"
 import { Button } from "@/ui/controls/button"
+import { Dialog, DialogFooter } from "@/ui/controls/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/ui/controls/dropdown-menu"
 import { Input } from "@/ui/controls/input"
 import { Label } from "@/ui/controls/label"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/ui/controls/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/ui/controls/table"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/ui/controls/popover"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-  CommandInput,
-} from "@/ui/controls/command"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/ui/controls/dropdown-menu"
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/ui/controls/dialog"
-import { CategoryCard } from "@/ui/admin/CategoryCard"
-import { ModelViewer } from "@/ui/admin/model-viewer"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/ui/controls/table"
+import { toast } from "sonner"
 
-interface ModelCategory {
-  ID: number
-  Name: string
-}
-
-interface Model {
-  ID: number
-  CategoryID: number
-  CategoryName: string
-  Name: string
-  Link: string
-  Gram: number
-  PieceCount: number
-  FilePath?: string
+function fromModel(item: Model): ModelFormState {
+  return {
+    categoryId: String(item.CategoryID),
+    name: item.Name,
+    link: item.Link || "",
+    gram: String(item.Gram),
+    pieceCount: String(item.PieceCount || 1),
+    file: null,
+  }
 }
 
 export default function ModelsPage() {
   const { t } = useTranslation()
-  
-  const [models, setModels] = React.useState<Model[]>([])
-  const [categories, setCategories] = React.useState<ModelCategory[]>([])
-  const [loading, setLoading] = React.useState(true)
-  const [submitting, setSubmitting] = React.useState(false)
-  const [addingCategory, setAddingCategory] = React.useState(false)
-  const [deletingCategoryId, setDeletingCategoryId] = React.useState<number | null>(null)
-  
-  const [isFormOpen, setIsFormOpen] = React.useState(true)
-
-  const [editingModel, setEditingModel] = React.useState<Model | null>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false)
-  const [editFormData, setEditFormData] = React.useState({
-    name: "",
-    categoryId: "",
-    link: "",
-    gram: "",
-    pieceCount: "",
-    file: null as File | null
-  })
-  const [updating, setUpdating] = React.useState(false)
-
-  const [formData, setFormData] = React.useState({
-    name: "",
-    categoryId: "",
-    link: "",
-    gram: "5.00",
-    pieceCount: "1",
-    file: null as File | null
+  const collection = useAdminCollection<Model, Category>({
+    entityPath: "/api/models",
+    categoryPath: "/api/model-categories",
   })
 
-  const [detailModel, setDetailModel] = React.useState<Model | null>(null)
-  const [isDetailOpen, setIsDetailOpen] = React.useState(false)
-
-  const [openCategory, setOpenCategory] = React.useState(false)
-  const [isDragging, setIsDragging] = React.useState(false)
-
-  const [filterCategory, setFilterCategory] = React.useState<string>("all")
-
-  const filteredModels = models.filter(m => {
-    if (filterCategory !== "all" && m.CategoryName !== filterCategory) return false
-    return true
+  const [formState, setFormState] = React.useState({
+    data: createModelFormState(),
+    submitting: false,
+  })
+  const [editState, setEditState] = React.useState({
+    open: false,
+    source: null as Model | null,
+    data: createModelFormState(),
+    submitting: false,
+  })
+  const [detailState, setDetailState] = React.useState({
+    open: false,
+    item: null as Model | null,
+  })
+  const [filters, setFilters] = React.useState<ModelFilters>({
+    categoryId: "all",
+  })
+  const [selectState, setSelectState] = React.useState({
+    formCategory: false,
+    editCategory: false,
+    filterCategory: false,
   })
 
-  const isFormValid = formData.name && formData.categoryId && formData.gram && formData.pieceCount
+  const models = collection.items
+  const categories = collection.categories
+  const filteredModels = React.useMemo(() => filterModels(models, filters), [models, filters])
+  const categoryOptions = React.useMemo(
+    () => categories.map((category) => ({ value: String(category.ID), label: category.Name })),
+    [categories],
+  )
 
-  const fetchData = React.useCallback(async () => {
-    try {
-      const [modRes, catRes] = await Promise.all([
-        fetch("http://localhost:3001/api/models"),
-        fetch("http://localhost:3001/api/model-categories"),
-      ])
-      const modData = await modRes.json()
-      const catData = await catRes.json()
-      return { modData, catData }
-    } catch (error) {
-      console.error("Failed to fetch data:", error)
-      return { modData: [] as Model[], catData: [] as ModelCategory[] }
-    }
-  }, [])
-
-  React.useEffect(() => {
-    let active = true
-
-    const load = async () => {
-      const { modData, catData } = await fetchData()
-      if (!active) {
-        return
+  const validateModelFile = React.useCallback(
+    (file: File) => {
+      const valid = file.name.toLowerCase().endsWith(".stl")
+      if (!valid) {
+        toast.error(t("common.invalid_file_type"))
       }
+      return valid
+    },
+    [t],
+  )
 
-      setModels(modData)
-      setCategories(catData)
-      setLoading(false)
-    }
-
-    void load()
-
-    return () => {
-      active = false
-    }
-  }, [fetchData])
-
-  const handleDeleteCategory = async (id: number) => {
-    setDeletingCategoryId(id)
-    try {
-      const response = await fetch(`http://localhost:3001/api/model-categories/${id}`, {
-        method: "DELETE",
-      })
-      if (response.ok) {
-        toast.success(t("common.notifications.cat_deleted"))
-        fetchData()
-      } else {
-        const error = await response.json()
-        if (error.error === "Category is in use and cannot be deleted") {
-          toast.error(t("common.notifications.cat_in_use"))
-        } else {
-          toast.error(error.error || t("common.notifications.cat_delete_error"))
-        }
-      }
-    } catch (error) {
-      console.error("Failed to delete category:", error)
-    } finally {
-      setDeletingCategoryId(null)
-    }
-  }
-
-  const handleDeleteModel = async (id: number) => {
-    try {
-      const response = await fetch(`http://localhost:3001/api/models/${id}`, {
-        method: "DELETE",
-      })
-      if (response.ok) {
-        toast.success(t("common.notifications.deleted"))
-        fetchData()
-      } else {
-        toast.error(t("common.notifications.delete_error"))
-      }
-    } catch (error) {
-      console.error("Failed to delete model:", error)
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.categoryId || !formData.name || !formData.gram) {
+  const handleCreate = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!formState.data.name || !formState.data.categoryId || !formState.data.gram) {
       return
     }
-    setSubmitting(true)
+
+    setFormState((current) => ({ ...current, submitting: true }))
     try {
-      const data = new FormData()
-      data.append("categoryId", formData.categoryId)
-      data.append("name", formData.name)
-      data.append("link", formData.link)
-      data.append("gram", formData.gram)
-      data.append("pieceCount", formData.pieceCount)
-      if (formData.file) {
-        data.append("file", formData.file)
+      const body = new FormData()
+      body.append("categoryId", formState.data.categoryId)
+      body.append("name", formState.data.name)
+      body.append("link", formState.data.link)
+      body.append("gram", formState.data.gram)
+      body.append("pieceCount", formState.data.pieceCount)
+      if (formState.data.file) {
+        body.append("file", formState.data.file)
       }
 
-      const response = await fetch("http://localhost:3001/api/models", {
+      await apiFetch("/api/models", {
         method: "POST",
-        body: data,
+        body,
       })
-
-      if (response.ok) {
-        toast.success(t("common.notifications.added"))
-        setFormData({
-          categoryId: "",
-          name: "",
-          link: "",
-          gram: "5.00",
-          pieceCount: "1",
-          file: null,
-        })
-        fetchData()
-      }
+      toast.success(t("common.notifications.added"))
+      setFormState({ data: createModelFormState(), submitting: false })
+      await collection.reload()
     } catch (error) {
-      console.error("Failed to add model:", error)
-    } finally {
-      setSubmitting(false)
+      toast.error(error instanceof Error ? error.message : t("common.notifications.delete_error"))
+      setFormState((current) => ({ ...current, submitting: false }))
     }
   }
 
-  const handleEditClick = (model: Model) => {
-    setEditingModel(model)
-    setEditFormData({
-      name: model.Name,
-      categoryId: model.CategoryID.toString(),
-      link: model.Link || "",
-      gram: model.Gram.toString(),
-      pieceCount: (model.PieceCount || 1).toString(),
-      file: null
-    })
-    setIsEditDialogOpen(true)
+  const handleUpdate = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!editState.source) {
+      return
+    }
+
+    setEditState((current) => ({ ...current, submitting: true }))
+    try {
+      const body = new FormData()
+      body.append("categoryId", editState.data.categoryId)
+      body.append("name", editState.data.name)
+      body.append("link", editState.data.link)
+      body.append("gram", editState.data.gram)
+      body.append("pieceCount", editState.data.pieceCount)
+      if (editState.data.file) {
+        body.append("file", editState.data.file)
+      }
+
+      await apiFetch(`/api/models/${editState.source.ID}`, {
+        method: "PATCH",
+        body,
+      })
+      toast.success(t("common.notifications.updated"))
+      setEditState({
+        open: false,
+        source: null,
+        data: createModelFormState(),
+        submitting: false,
+      })
+      await collection.reload()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("common.notifications.delete_error"))
+      setEditState((current) => ({ ...current, submitting: false }))
+    }
   }
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingModel) return
-    setUpdating(true)
+  const handleDeleteCategory = async (id: number) => {
     try {
-      const data = new FormData()
-      data.append("name", editFormData.name)
-      data.append("categoryId", editFormData.categoryId)
-      data.append("link", editFormData.link)
-      data.append("gram", editFormData.gram)
-      data.append("pieceCount", editFormData.pieceCount)
-      if (editFormData.file) {
-        data.append("file", editFormData.file)
-      }
-
-      const response = await fetch(`http://localhost:3001/api/models/${editingModel.ID}`, {
-        method: "PATCH",
-        body: data,
-      })
-      if (response.ok) {
-        setIsEditDialogOpen(false)
-        fetchData()
-      }
+      await collection.deleteCategory(id)
+      toast.success(t("common.notifications.cat_deleted"))
     } catch (error) {
-      console.error("Failed to update model:", error)
-    } finally {
-      setUpdating(false)
+      const message = error instanceof Error ? error.message : t("common.notifications.cat_delete_error")
+      toast.error(message.includes("in use") ? t("common.notifications.cat_in_use") : message)
+    }
+  }
+
+  const handleDelete = async (id: number) => {
+    try {
+      await collection.deleteItem(id)
+      toast.success(t("common.notifications.deleted"))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("common.notifications.delete_error"))
     }
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-8 p-6 pt-2">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-          {t("nav.models")}
-        </h1>
-      </div>
-
+    <AdminPageShell title={t("nav.models")}>
       <div className="grid gap-8 lg:grid-cols-12">
-        <div className="lg:col-span-4 space-y-6">
-          <Card className="border-muted/40 bg-card/40 backdrop-blur-md shadow-lg overflow-hidden transition-all duration-300">
-            <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
-              <div className="space-y-1.5">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Box className="h-4 w-4 text-primary" />
-                  {t("models.new_record")}
-                </CardTitle>
-                <CardDescription>
-                  {t("models.new_record_desc")}
-                </CardDescription>
+        <div className="space-y-6 lg:col-span-4">
+          <AdminSectionCard title={t("models.new_record")} description={t("models.new_record_desc")} icon={Plus}>
+            <form onSubmit={handleCreate} className="space-y-5">
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("models.name")}</Label>
+                <Input
+                  value={formState.data.name}
+                  onChange={(event) =>
+                    setFormState((current) => ({ ...current, data: { ...current.data, name: event.target.value } }))
+                  }
+                  placeholder={t("models.name_placeholder")}
+                  className="bg-background/40"
+                />
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setIsFormOpen(!isFormOpen)}
-                className="h-8 w-8 p-0"
-              >
-                {isFormOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("models.category")}</Label>
+                <EntitySelect
+                  open={selectState.formCategory}
+                  onOpenChange={(open) => setSelectState((current) => ({ ...current, formCategory: open }))}
+                  value={formState.data.categoryId}
+                  onChange={(value) => setFormState((current) => ({ ...current, data: { ...current.data, categoryId: value } }))}
+                  placeholder={t("common.select_category")}
+                  searchPlaceholder={t("common.search_category")}
+                  emptyLabel={t("common.category_not_found")}
+                  options={categoryOptions}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("models.gram")}</Label>
+                  <Input
+                    type="number"
+                    value={formState.data.gram}
+                    onChange={(event) =>
+                      setFormState((current) => ({ ...current, data: { ...current.data, gram: event.target.value } }))
+                    }
+                    className="bg-background/40"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("models.piece_count")}</Label>
+                  <Input
+                    type="number"
+                    value={formState.data.pieceCount}
+                    onChange={(event) =>
+                      setFormState((current) => ({ ...current, data: { ...current.data, pieceCount: event.target.value } }))
+                    }
+                    className="bg-background/40"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("models.link")}</Label>
+                <Input
+                  value={formState.data.link}
+                  onChange={(event) =>
+                    setFormState((current) => ({ ...current, data: { ...current.data, link: event.target.value } }))
+                  }
+                  placeholder={t("models.link_placeholder")}
+                  className="bg-background/40"
+                />
+              </div>
+
+              <FileDropzone
+                id="model-file"
+                label={t("models.file_upload")}
+                file={formState.data.file}
+                accept=".stl"
+                emptyTitle={t("models.drag_drop")}
+                emptyHint={t("models.only_stl")}
+                onChange={(file) => setFormState((current) => ({ ...current, data: { ...current.data, file } }))}
+                validate={validateModelFile}
+              />
+
+              <Button type="submit" className="w-full gap-2" disabled={formState.submitting}>
+                {formState.submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {t("models.save")}
               </Button>
-            </CardHeader>
-            <div className={cn(
-              "grid transition-all duration-300 ease-in-out",
-              isFormOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-            )}>
-              <div className="overflow-hidden">
-                <CardContent className="pb-6">
-                  <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="space-y-2">
-                      <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.name")}</Label>
-                      <Input
-                        placeholder={t("models.name_placeholder")}
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                        className="bg-background/40 border-muted/30 transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.category")}</Label>
-                      <Popover open={openCategory} onOpenChange={setOpenCategory}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={openCategory}
-                            className="w-full justify-between bg-background/40 border-muted/30 h-10 font-normal px-3"
-                          >
-                            <span className="truncate">
-                              {formData.categoryId
-                                ? categories.find((cat) => cat.ID.toString() === formData.categoryId)?.Name
-                                : t("common.select_category")}
-                            </span>
-                            <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[200px] p-0" align="start">
-                          <div className="flex items-center justify-between p-2 border-b border-muted/20 bg-muted/5">
-                            <span className="text-[10px] font-bold tracking-wider text-muted-foreground">{t("models.category")}</span>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-6 w-6 p-0 text-primary hover:bg-primary/10"
-                              onClick={() => {
-                                setOpenCategory(false)
-                                document.getElementById('category-management')?.scrollIntoView({ behavior: 'smooth' })
-                              }}
-                              title={t("common.add_category")}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-                          <Command>
-                            <CommandInput placeholder={t("common.search_category")} />
-                            <CommandList className="max-h-[200px] overflow-y-auto scrollbar-none">
-                              <CommandEmpty>{t("common.category_not_found")}</CommandEmpty>
-                              <CommandGroup>
-                                {categories.map((cat) => (
-                                  <CommandItem
-                                    key={cat.ID}
-                                    value={cat.Name}
-                                    onSelect={() => {
-                                      setFormData({ ...formData, categoryId: cat.ID.toString() })
-                                      setOpenCategory(false)
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        formData.categoryId === cat.ID.toString() ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    {cat.Name}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.gram")}</Label>
-                        <Input
-                          type="number"
-                          step="1.00"
-                          min="2.00"
-                          placeholder={t("models.gram_placeholder")}
-                          value={formData.gram}
-                          onChange={(e) => setFormData({ ...formData, gram: e.target.value })}
-                          required
-                          className="bg-background/40 border-muted/30 text-left transition-all"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.piece_count")}</Label>
-                        <Input
-                          type="number"
-                          step="1"
-                          min="1"
-                          placeholder={t("models.piece_count_placeholder")}
-                          value={formData.pieceCount}
-                          onChange={(e) => setFormData({ ...formData, pieceCount: e.target.value })}
-                          required
-                          className="bg-background/40 border-muted/30 transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.link")}</Label>
-                      <Input
-                        placeholder={t("models.link_placeholder")}
-                        value={formData.link}
-                        onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                        className="bg-background/40 border-muted/30 transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.file_upload")}</Label>
-                      <div 
-                        className={cn(
-                          "border-2 border-dashed rounded-lg p-4 transition-all duration-200 flex flex-col items-center justify-center gap-2 cursor-pointer",
-                          formData.file ? "border-primary/50 bg-primary/5" : "border-muted/30",
-                          isDragging && "border-primary bg-primary/10 scale-[1.02]"
-                        )}
-                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
-                        onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setIsDragging(false);
-                          const file = e.dataTransfer.files?.[0];
-                          if (file && file.name.endsWith('.stl')) {
-                            setFormData({ ...formData, file });
-                          }
-                        }}
-                        onClick={() => document.getElementById('model-file-input')?.click()}
-                      >
-                        <input 
-                          id="model-file-input"
-                          type="file" 
-                          className="hidden" 
-                          accept=".stl"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) setFormData({ ...formData, file });
-                          }}
-                        />
-                        {formData.file ? (
-                          <>
-                            <FileText className="h-8 w-8 text-primary" />
-                            <div className="text-center">
-                              <p className="text-xs font-medium truncate max-w-[150px]">{formData.file.name}</p>
-                              <p className="text-[10px] text-muted-foreground">{(formData.file.size / 1024).toFixed(1)} KB</p>
-                            </div>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-6 w-6 rounded-full" 
-                              onClick={(e) => { e.stopPropagation(); setFormData({ ...formData, file: null }); }}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <FileUp className={cn("h-8 w-8 transition-colors", isDragging ? "text-primary" : "text-muted-foreground/50")} />
-                            <div className="text-center">
-                              <p className="text-xs font-medium">{isDragging ? "Buraya Bırakın" : t("models.drag_drop")}</p>
-                              <p className="text-[10px] text-muted-foreground">{t("models.only_stl")}</p>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    <Button 
-                      type="submit" 
-                      className="w-full h-10 font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all active:scale-[0.98]" 
-                      disabled={submitting || !isFormValid}
-                    >
-                      {submitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {t("models.saving")}
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="mr-2 h-4 w-4" />
-                          {t("models.save")}
-                        </>
-                      )}
-                    </Button>
-                  </form>
-                </CardContent>
-              </div>
-            </div>
-          </Card>
+            </form>
+          </AdminSectionCard>
 
           <CategoryCard
             id="category-management"
@@ -534,111 +261,81 @@ export default function ModelsPage() {
             description={t("models.categories_desc")}
             categories={categories}
             onAdd={async (name) => {
-              setAddingCategory(true)
               try {
-                const response = await fetch("http://localhost:3001/api/model-categories", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ name }),
-                })
-                if (response.ok) fetchData()
-              } finally {
-                setAddingCategory(false)
+                await collection.createCategory(name)
+                toast.success(t("common.notifications.added"))
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : t("common.notifications.cat_delete_error"))
               }
             }}
             onDelete={handleDeleteCategory}
-            addingCategory={addingCategory}
-            deletingCategoryId={deletingCategoryId}
+            addingCategory={collection.addingCategory}
+            deletingCategoryId={collection.deletingCategoryId}
           />
         </div>
 
         <div className="lg:col-span-8">
-          <Card className="h-full border-muted/40 bg-card/40 backdrop-blur-md shadow-lg flex flex-col">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-xl">{t("models.library")}</CardTitle>
-                  <CardDescription>
-                    {t("models.library_desc")}
-                  </CardDescription>
-                </div>
-                <div className="bg-muted/30 px-3 py-1 rounded-full text-xs font-semibold text-muted-foreground border border-muted/20">
-                  {t("models.total")}: {models.length}
-                </div>
+          <AdminTableCard
+            title={t("models.library")}
+            description={t("models.library_desc")}
+            icon={Box}
+            countLabel={t("models.total")}
+            count={models.length}
+          >
+            <div className="border-b border-muted/20 p-4">
+              <EntitySelect
+                open={selectState.filterCategory}
+                onOpenChange={(open) => setSelectState((current) => ({ ...current, filterCategory: open }))}
+                value={filters.categoryId}
+                onChange={(value) => setFilters({ categoryId: value })}
+                placeholder={t("models.category")}
+                searchPlaceholder={t("common.search_category")}
+                emptyLabel={t("common.category_not_found")}
+                options={[{ value: "all", label: t("common.all") }, ...categoryOptions]}
+              />
+            </div>
+
+            {collection.loading ? (
+              <div className="flex h-64 items-center justify-center">
+                <Loader2 className="h-10 w-10 animate-spin text-primary/60" />
               </div>
-            </CardHeader>
-            <CardContent className="flex-1 overflow-auto p-0 border-t border-muted/20">
-              {loading ? (
-                <div className="flex h-64 items-center justify-center">
-                  <Loader2 className="h-10 w-10 animate-spin text-primary/60" />
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader className="bg-muted/10">
-                  <TableRow className="hover:bg-transparent border-muted/20">
-                    <TableHead className="font-semibold px-6 w-[30%]">{t("models.table.name")}</TableHead>
-                    <TableHead className="font-semibold text-center w-[25%]">
-                      <div className="flex items-center justify-center gap-1">
-                        {t("models.table.category")}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-muted/30">
-                              <Filter className={cn("h-3 w-3", filterCategory !== "all" && "text-primary fill-primary")} />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="center" className="w-40">
-                            <DropdownMenuItem onClick={() => setFilterCategory("all")}>{t("common.all")}</DropdownMenuItem>
-                            {categories.map(c => (
-                              <DropdownMenuItem key={c.ID} onClick={() => setFilterCategory(c.Name)}>{c.Name}</DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableHead>
-                    <TableHead className="font-semibold text-center w-[12%]">{t("models.table.gram")}</TableHead>
-                    <TableHead className="font-semibold text-center w-[13%]">{t("models.table.piece_count")}</TableHead>
-                    <TableHead className="font-semibold text-center w-[10%]">{t("models.table.link")}</TableHead>
-                    <TableHead className="w-[10%] px-6 text-right">
-                      {filterCategory !== "all" && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
-                          onClick={() => setFilterCategory("all")}
-                          title={t("common.clear_filters")}
-                        >
-                          <FilterX className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </TableHead>
+            ) : (
+              <Table>
+                <TableHeader className="bg-muted/10">
+                  <TableRow className="border-muted/20">
+                    <TableHead className="px-6">{t("models.table.name")}</TableHead>
+                    <TableHead>{t("models.table.category")}</TableHead>
+                    <TableHead>{t("models.table.gram")}</TableHead>
+                    <TableHead>{t("models.table.piece_count")}</TableHead>
+                    <TableHead>{t("models.table.link")}</TableHead>
+                    <TableHead className="px-6 text-right">{t("common.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredModels.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="h-48 text-center text-muted-foreground opacity-50">
-                        <Search className="h-12 w-12 mx-auto mb-2" />
-                        <p>{t("models.table.no_data")}</p>
+                        {t("common.no_data")}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredModels.map((model) => (
-                      <TableRow key={model.ID} className="hover:bg-muted/5 transition-colors border-muted/10 h-16">
-                        <TableCell className="font-medium px-6">{model.Name}</TableCell>
-                        <TableCell className="text-center">
-                          <span className="px-2 py-0.5 rounded-full bg-muted/20 text-[11px]">
-                            {model.CategoryName}
-                          </span>
+                    filteredModels.map((item) => (
+                      <TableRow key={item.ID} className="h-16 border-muted/10 transition-colors hover:bg-muted/5">
+                        <TableCell className="px-6 font-medium">{item.Name}</TableCell>
+                        <TableCell>
+                          <span className="rounded-full bg-muted/20 px-2 py-0.5 text-[11px]">{item.CategoryName || t("common.no_category")}</span>
                         </TableCell>
-                        <TableCell className="text-center font-bold">{(model.Gram || 0).toFixed(2)}g</TableCell>
-                        <TableCell className="text-center">{(model.PieceCount || 1)}x</TableCell>
-                        <TableCell className="text-center">
-                          {model.Link ? (
-                            <a href={model.Link} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                        <TableCell>{Number(item.Gram).toFixed(2)}g</TableCell>
+                        <TableCell>{item.PieceCount || 1}x</TableCell>
+                        <TableCell>
+                          {item.Link ? (
+                            <a href={item.Link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
                               <ExternalLink className="h-3 w-3" />
                               Link
                             </a>
-                          ) : "-"}
+                          ) : (
+                            "-"
+                          )}
                         </TableCell>
                         <TableCell className="px-6 text-right">
                           <DropdownMenu>
@@ -648,18 +345,24 @@ export default function ModelsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-40">
-                              <DropdownMenuItem onClick={() => { setDetailModel(model); setIsDetailOpen(true); }} className="cursor-pointer">
+                              <DropdownMenuItem onClick={() => setDetailState({ open: true, item })}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 {t("common.details")}
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEditClick(model)} className="cursor-pointer">
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  setEditState({
+                                    open: true,
+                                    source: item,
+                                    data: fromModel(item),
+                                    submitting: false,
+                                  })
+                                }
+                              >
                                 <Edit3 className="mr-2 h-4 w-4" />
                                 {t("common.edit")}
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleDeleteModel(model.ID)}
-                                className="text-red-500 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20 cursor-pointer"
-                              >
+                              <DropdownMenuItem className="text-red-500 focus:text-red-600" onClick={() => void handleDelete(item.ID)}>
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 {t("common.delete")}
                               </DropdownMenuItem>
@@ -672,135 +375,117 @@ export default function ModelsPage() {
                 </TableBody>
               </Table>
             )}
-            </CardContent>
-          </Card>
+          </AdminTableCard>
         </div>
       </div>
 
-      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-3xl bg-background/95 backdrop-blur-xl border-muted/30">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-              <Box className="h-6 w-6 text-primary" />
-              {detailModel?.Name}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="grid gap-6 lg:grid-cols-2 py-4">
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-muted/30">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold tracking-widest text-muted-foreground">{t("models.category")}</p>
-                  <p className="text-sm font-semibold">{detailModel?.CategoryName}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold tracking-widest text-muted-foreground">{t("models.details.weight")}</p>
-                  <p className="text-sm font-semibold">{detailModel?.Gram}g</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold tracking-widest text-muted-foreground">{t("models.table.piece_count")}</p>
-                  <p className="text-sm font-semibold">{detailModel?.PieceCount}x</p>
-                </div>
-              </div>
-
-              <div className="space-y-1 p-4 bg-primary/5 rounded-xl border border-primary/10 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <ExternalLink className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="text-[10px] font-bold tracking-widest text-primary/70">{t("models.table.link")}</p>
-                      {detailModel?.Link ? (
-                        <a href={detailModel.Link} target="_blank" rel="noreferrer" className="text-sm font-medium hover:underline text-primary">
-                          {detailModel.Link}
-                        </a>
-                      ) : (
-                        <p className="text-sm font-medium text-muted-foreground italic">{t("common.no_data")}</p>
-                      )}
-                    </div>
+      <Dialog open={detailState.open} onOpenChange={(open) => setDetailState((current) => ({ ...current, open }))}>
+        <AdminDialogShell
+          title={detailState.item?.Name || t("common.details")}
+          description={t("models.details.desc")}
+          icon={Box}
+          className="max-w-4xl border-muted/30 bg-background/95 backdrop-blur-xl"
+        >
+          {detailState.item ? (
+            <div className="grid gap-6 py-4 lg:grid-cols-2">
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4 rounded-xl border border-muted/30 bg-muted/20 p-4">
+                  <div>
+                    <p className="text-[10px] font-bold tracking-widest text-muted-foreground">{t("models.category")}</p>
+                    <p className="text-sm font-semibold">{detailState.item.CategoryName}</p>
                   </div>
+                  <div>
+                    <p className="text-[10px] font-bold tracking-widest text-muted-foreground">{t("models.details.weight")}</p>
+                    <p className="text-sm font-semibold">{detailState.item.Gram}g</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold tracking-widest text-muted-foreground">{t("models.table.piece_count")}</p>
+                    <p className="text-sm font-semibold">{detailState.item.PieceCount}x</p>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-primary/10 bg-primary/5 p-4">
+                  <p className="text-[10px] font-bold tracking-widest text-primary/70">{t("models.table.link")}</p>
+                  {detailState.item.Link ? (
+                    <a href={detailState.item.Link} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary hover:underline">
+                      {detailState.item.Link}
+                    </a>
+                  ) : (
+                    <p className="text-sm font-medium text-muted-foreground italic">{t("models.details.no_link")}</p>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold tracking-widest text-muted-foreground">{t("models.details.preview")}</p>
+                <ModelViewer filePath={detailState.item.FilePath} />
               </div>
             </div>
-
-            <div className="space-y-3">
-              <p className="text-[10px] font-bold tracking-widest text-muted-foreground">{t("models.details.preview")}</p>
-              <ModelViewer filePath={detailModel?.FilePath} />
-            </div>
-          </div>
-        </DialogContent>
+          ) : null}
+        </AdminDialogShell>
       </Dialog>
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md bg-background/95 backdrop-blur-xl border-muted/30">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-              <Edit3 className="h-6 w-6 text-primary" />
-              {t("common.edit")}
-            </DialogTitle>
-          </DialogHeader>
-          
+      <Dialog open={editState.open} onOpenChange={(open) => setEditState((current) => ({ ...current, open }))}>
+        <AdminDialogShell title={t("models.edit_dialog.title")} description={t("models.edit_dialog.desc")} icon={Edit3} className="max-w-xl border-muted/30 bg-background/95 backdrop-blur-xl">
           <form onSubmit={handleUpdate} className="space-y-5 py-4">
             <div className="space-y-2">
-              <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.name")}</Label>
+              <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("models.name")}</Label>
               <Input
-                value={editFormData.name}
-                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                required
+                value={editState.data.name}
+                onChange={(event) =>
+                  setEditState((current) => ({ ...current, data: { ...current.data, name: event.target.value } }))
+                }
               />
             </div>
-
             <div className="space-y-2">
-              <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.category")}</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between">
-                    {editFormData.categoryId ? categories.find(c => c.ID.toString() === editFormData.categoryId)?.Name : t("common.select")}
-                    <ChevronDown className="h-4 w-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0">
-                  <Command>
-                    <CommandInput placeholder={t("common.search")} />
-                    <CommandList>
-                      <CommandGroup>
-                        {categories.map(c => (
-                          <CommandItem key={c.ID} onSelect={() => setEditFormData({ ...editFormData, categoryId: c.ID.toString() })}>
-                            <Check className={cn("mr-2 h-4 w-4", editFormData.categoryId === c.ID.toString() ? "opacity-100" : "opacity-0")} />
-                            {c.Name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <Label className="text-xs font-semibold tracking-wider text-muted-foreground">{t("models.category")}</Label>
+              <EntitySelect
+                open={selectState.editCategory}
+                onOpenChange={(open) => setSelectState((current) => ({ ...current, editCategory: open }))}
+                value={editState.data.categoryId}
+                onChange={(value) => setEditState((current) => ({ ...current, data: { ...current.data, categoryId: value } }))}
+                placeholder={t("common.select_category")}
+                searchPlaceholder={t("common.search_category")}
+                emptyLabel={t("common.category_not_found")}
+                options={categoryOptions}
+              />
             </div>
-
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.gram")}</Label>
-                <Input
-                  type="number"
-                  value={editFormData.gram}
-                  onChange={(e) => setEditFormData({ ...editFormData, gram: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs tracking-wider text-muted-foreground font-semibold">{t("models.piece_count")}</Label>
-                <Input
-                  type="number"
-                  value={editFormData.pieceCount}
-                  onChange={(e) => setEditFormData({ ...editFormData, pieceCount: e.target.value })}
-                />
-              </div>
+              <Input
+                type="number"
+                value={editState.data.gram}
+                onChange={(event) =>
+                  setEditState((current) => ({ ...current, data: { ...current.data, gram: event.target.value } }))
+                }
+              />
+              <Input
+                type="number"
+                value={editState.data.pieceCount}
+                onChange={(event) =>
+                  setEditState((current) => ({ ...current, data: { ...current.data, pieceCount: event.target.value } }))
+                }
+              />
             </div>
-
+            <FileDropzone
+              id="edit-model-file"
+              label={t("models.file_upload")}
+              file={editState.data.file}
+              accept=".stl"
+              emptyTitle={t("models.drag_drop")}
+              emptyHint={t("models.only_stl")}
+              onChange={(file) => setEditState((current) => ({ ...current, data: { ...current.data, file } }))}
+              validate={validateModelFile}
+            />
             <DialogFooter>
-              <Button type="submit" disabled={updating} className="w-full">
-                {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : t("common.update")}
+              <Button type="button" variant="ghost" onClick={() => setEditState((current) => ({ ...current, open: false }))}>
+                {t("common.cancel")}
+              </Button>
+              <Button type="submit" disabled={editState.submitting}>
+                {editState.submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+                {t("models.edit_dialog.save")}
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
+        </AdminDialogShell>
       </Dialog>
-    </div>
+    </AdminPageShell>
   )
 }

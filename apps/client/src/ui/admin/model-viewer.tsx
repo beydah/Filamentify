@@ -1,18 +1,8 @@
 import * as React from "react"
 import { useTranslation } from "react-i18next"
-import { Canvas, useLoader } from "@react-three/fiber"
-import { Center, OrbitControls, Stage } from "@react-three/drei"
-import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js"
 import { buildProtectedFileUrl } from "@/lib/api"
 
-function STLModel({ url }: { url: string }) {
-  const geometry = useLoader(STLLoader, url)
-  return (
-    <mesh geometry={geometry}>
-      <meshStandardMaterial color="#888888" />
-    </mesh>
-  )
-}
+const LazyModelViewerCanvas = React.lazy(() => import("./model-viewer-canvas"))
 
 interface ModelViewerProps {
   filePath?: string | null
@@ -47,16 +37,9 @@ export function ModelViewer({
 
   return (
     <div className={viewerClassName}>
-      <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
-        <Stage intensity={0.5} environment="city" adjustCamera={1.5}>
-          <React.Suspense fallback={null}>
-            <Center>
-              <STLModel url={url} />
-            </Center>
-          </React.Suspense>
-        </Stage>
-        <OrbitControls makeDefault />
-      </Canvas>
+      <React.Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-muted-foreground">{t("common.loading")}</div>}>
+        <LazyModelViewerCanvas url={url} />
+      </React.Suspense>
     </div>
   )
 }
