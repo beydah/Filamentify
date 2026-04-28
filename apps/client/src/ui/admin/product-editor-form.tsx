@@ -41,17 +41,13 @@ export function ProductEditorForm({
   currentProductId,
 }: ProductEditorFormProps) {
   const { t } = useTranslation()
-  const [isSubProduct, setIsSubProduct] = React.useState(Boolean(draft.parentId))
+  const [subProductOverride, setSubProductOverride] = React.useState<boolean | null>(null)
+  const isSubProduct = subProductOverride !== null ? subProductOverride : Boolean(draft.parentId)
+  const setIsSubProduct = React.useCallback((value: boolean) => setSubProductOverride(value), [])
   const [selectState, setSelectState] = React.useState({
     parent: false,
     category: false,
   })
-
-  React.useEffect(() => {
-    if (draft.parentId) {
-      setIsSubProduct(true)
-    }
-  }, [draft.parentId])
 
   const parentOptions = React.useMemo(
     () =>

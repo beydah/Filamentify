@@ -40,13 +40,13 @@ export default function ModelsPage() {
     categoryPath: "/api/model-categories",
   })
 
-  const [formState, setFormState] = React.useState({
+  const [formState, setFormState] = React.useState<{ data: ModelFormState; submitting: boolean }>({
     data: createModelFormState(),
     submitting: false,
   })
-  const [editState, setEditState] = React.useState({
+  const [editState, setEditState] = React.useState<{ open: boolean; source: Model | null; data: ModelFormState; submitting: boolean }>({
     open: false,
-    source: null as Model | null,
+    source: null,
     data: createModelFormState(),
     submitting: false,
   })
@@ -319,7 +319,7 @@ export default function ModelsPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredModels.map((item) => (
+                    filteredModels.map((item: Model) => (
                       <TableRow key={item.ID} className="h-16 border-muted/10 transition-colors hover:bg-muted/5">
                         <TableCell className="px-6 font-medium">{item.Name}</TableCell>
                         <TableCell>

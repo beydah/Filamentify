@@ -349,7 +349,7 @@ export default function MaterialsPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredMaterials.map((item) => (
+                    filteredMaterials.map((item: Material) => (
                       <TableRow key={item.ID} className="h-16 border-muted/10 transition-colors hover:bg-muted/5">
                         <TableCell className="px-6 font-medium">{item.Name}</TableCell>
                         <TableCell>

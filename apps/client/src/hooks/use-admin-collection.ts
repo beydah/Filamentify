@@ -2,7 +2,7 @@ import * as React from "react"
 import { apiFetch, apiJsonBody } from "@/lib/api"
 import type { Category } from "@/lib/admin-types"
 
-interface UseAdminCollectionConfig<TEntity, TCategory extends Category> {
+interface UseAdminCollectionConfig {
   entityPath: string
   categoryPath: string
 }
@@ -10,7 +10,7 @@ interface UseAdminCollectionConfig<TEntity, TCategory extends Category> {
 export function useAdminCollection<TEntity, TCategory extends Category>({
   entityPath,
   categoryPath,
-}: UseAdminCollectionConfig<TEntity, TCategory>) {
+}: UseAdminCollectionConfig) {
   const [items, setItems] = React.useState<TEntity[]>([])
   const [categories, setCategories] = React.useState<TCategory[]>([])
   const [loading, setLoading] = React.useState(true)

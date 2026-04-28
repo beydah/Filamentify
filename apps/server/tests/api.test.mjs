@@ -190,6 +190,70 @@ async function main() {
 
       assert.equal(response.status, 400)
     })
+
+    await runCase("rejects invalid relation JSON in product creation", async () => {
+      const formData = new FormData()
+      formData.append("name", "Bad Relations")
+      formData.append("description", "Should fail")
+      formData.append("price", "10")
+      formData.append("stock", "1")
+      formData.append("profitMultiplier", "1")
+      formData.append("materials", "not valid json [")
+      formData.append("models", "[]")
+      formData.append("filaments", "[]")
+      formData.append("parentId", "")
+      formData.append("categoryId", "")
+
+      const response = await request("/api/products", {
+        method: "POST",
+        headers: authHeaders(),
+        body: formData,
+      })
+
+      assert.equal(response.status, 400)
+      const body = await response.json()
+      assert.equal(body.code, "validation_error")
+    })
+
+    await runCase("model update replaces file and still returns 200", async () => {
+      const { default: db } = await import("../dist/db.js")
+
+      const categoryId = Number(
+        db.prepare("INSERT INTO ModelCategory_TB (Name) VALUES (?)").run("Replace Test").lastInsertRowid,
+      )
+
+      const formData = new FormData()
+      formData.append("categoryId", String(categoryId))
+      formData.append("name", "Replace Model")
+      formData.append("gram", "10")
+      formData.append("pieceCount", "1")
+
+      const createResponse = await request("/api/models", {
+        method: "POST",
+        headers: authHeaders(),
+        body: formData,
+      })
+      assert.equal(createResponse.status, 201)
+      const created = await createResponse.json()
+
+      const updateForm = new FormData()
+      updateForm.append("categoryId", String(categoryId))
+      updateForm.append("name", "Replace Model Updated")
+      updateForm.append("gram", "15")
+      updateForm.append("pieceCount", "2")
+
+      const updateResponse = await request(`/api/models/${created.ID}`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: updateForm,
+      })
+      assert.equal(updateResponse.status, 200)
+
+      const model = db.prepare("SELECT Name, Gram, PieceCount FROM Model_TB WHERE ID = ?").get(created.ID)
+      assert.equal(model.Name, "Replace Model Updated")
+      assert.equal(model.Gram, 15)
+      assert.equal(model.PieceCount, 2)
+    })
   } finally {
     await teardown()
   }

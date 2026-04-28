@@ -421,7 +421,7 @@ export default function FilamentPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredFilaments.map((item) => {
+                    filteredFilaments.map((item: Filament) => {
                       const stockStatus = getFilamentStockStatus(item)
 
                       return (

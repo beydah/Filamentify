@@ -1,6 +1,6 @@
 import * as React from "react"
 import { useTranslation } from "react-i18next"
-import { Box, Check, Edit3, Eye, Loader2, MoreVertical, Package, Plus, ShoppingBag, Trash2 } from "lucide-react"
+import { Box, Edit3, Eye, Loader2, MoreVertical, Package, Plus, ShoppingBag, Trash2 } from "lucide-react"
 
 import type { Product, ProductCategory, ProductFormState } from "@/lib/admin-types"
 import { apiFetch } from "@/lib/api"
@@ -43,13 +43,13 @@ export default function ProductsPage() {
   const { t } = useTranslation()
   const catalog = useProductCatalog()
 
-  const [formState, setFormState] = React.useState({
+  const [formState, setFormState] = React.useState<{ data: ProductFormState; submitting: boolean }>({
     data: createProductFormState(),
     submitting: false,
   })
-  const [editState, setEditState] = React.useState({
+  const [editState, setEditState] = React.useState<{ open: boolean; source: Product | null; data: ProductFormState; submitting: boolean }>({
     open: false,
-    source: null as Product | null,
+    source: null,
     data: createProductFormState(),
     submitting: false,
   })
