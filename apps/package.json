@@ -10,6 +10,6 @@
     "test": "npm run test --prefix server && npm run test --prefix client"
   },
   "devDependencies": {
-    "concurrently": "^10.0.3"
+    "concurrently": "^10.0.7"
   }
 }
